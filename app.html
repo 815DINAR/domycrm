@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор стоимости продуктов</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Боковая панель навигации -->
+        <aside class="navigation-sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Меню</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-item active" data-section="calculator">
+                        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="M8 9h8"/>
+                            <path d="M8 13h6"/>
+                            <path d="M8 17h4"/>
+                        </svg>
+                        <span>Калькулятор продуктов</span>
+                    </div>
+                    
+                    <!-- Админ панель - скрыта по умолчанию -->
+                    <div class="nav-item admin-only" data-section="admin" style="display: none;">
+                        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        <span>Админ панель</span>
+                    </div>
+                </div>
+                
+                <!-- Кнопка выхода внизу меню -->
+                <div class="nav-section" style="margin-top: auto; padding-bottom: 20px;">
+                    <div class="nav-item" id="logoutBtn">
+                        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        <span>Выход</span>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Секция калькулятора -->
+            <div id="calculator-section" class="content-section active">
+                <div class="container">
+                    <header>
+                        <h1><img src="logo.png" alt="Logo" style="height: 1em; vertical-align: baseline; margin-right: 10px;"> Калькулятор стоимости продуктов</h1>
+                        <a href="https://cypress-lantana-0e0.notion.site/22332fd3ba2d80efa0afc3a220c28ca2?source=copy_link" class="instruction-btn">Инструкция</a>
+                    </header>
+
+                    <div class="main-form">
+                        <div class="form-group">
+                            <label for="calculatorType">Выбор калькулятора:</label>
+                            <select id="calculatorType" required>
+                                <option value="increase">Увеличение помещений</option>
+                                <option value="new">Новая сделка/Пролонг</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="propertyType">Тип недвижимости:</label>
+                            <select id="propertyType" required>
+                                <option value="">Выберите тип</option>
+                                <option value="многоквартирный дом">Многоквартирный дом</option>
+                                <option value="коттеджный поселок">Коттеджный поселок</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group increase-fields">
+                            <label for="currentUnits">Текущее количество помещений у партнера:</label>
+                            <input type="number" id="currentUnits" min="0" placeholder="Введите количество" required>
+                        </div>
+
+                        <div class="form-group increase-fields">
+                            <label for="globalUnits">Сколько нужно добавить помещений:</label>
+                            <input type="number" id="globalUnits" min="1" placeholder="Введите количество" required>
+                        </div>
+
+                        <div class="form-group new-deal-fields" style="display: none;">
+                            <label for="totalUnits">Помещений (лицевых счетов):</label>
+                            <input type="number" id="totalUnits" min="1" placeholder="Введите количество" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="globalUnitsEnabled" checked>
+                                <span class="checkmark"></span>
+                                Одинаковое количество помещений для всех продуктов
+                                <span class="info-icon" data-tooltip="Если включено - количество помещений будет одинаковым для всех выбранных продуктов. Если выключено - можно указать индивидуальное количество для каждого продукта.">ℹ️</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group date-group">
+                            <div>
+                                <label for="dateFrom">Дата ОТ:</label>
+                                <input type="date" id="dateFrom" class="date-input-manual" required>
+                            </div>
+                            <div>
+                                <label for="dateTo">Дата ДО:</label>
+                                <input type="date" id="dateTo" class="date-input-manual" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="globalDates" checked>
+                                <span class="checkmark"></span>
+                                Одинаковая дата для всех продуктов
+                                <span class="info-icon" data-tooltip="Если включено - все продукты будут подключены на один период времени. Если выключено - можно указать индивидуальные даты начала и окончания для каждого продукта.">ℹ️</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="globalDiscount">Скидка (%)( Необязательно для заполнения):</label>
+                            <input type="number" id="globalDiscount" min="0" max="100" step="0.01" placeholder="Введите скидку">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="globalDiscounts" checked>
+                                <span class="checkmark"></span>
+                                Одинаковая скидка на все продукты
+                                <span class="info-icon" data-tooltip="Если включено - одинаковая скидка применится ко всем продуктам. Если выключено - можно указать индивидуальную скидку для каждого продукта или оставить без скидки.">ℹ️</span>
+                            </label>
+                        </div>
+
+                        <div class="products-section">
+                            <h3>Выбор продуктов</h3>
+                            <div class="products-checkbox-list" id="productsCheckboxList"></div>
+                            <button type="button" id="addSelectedProducts" class="btn-secondary">Добавить выбранные продукты</button>
+                            <div id="productsList" class="added-products-list"></div>
+                        </div>
+
+                        <button type="button" id="calculate" class="btn-primary">Рассчитать стоимость</button>
+                    </div>
+
+                    <div id="results" class="results-section" style="display: none;">
+                        <h3>Результаты расчета</h3>
+                        <div id="resultsContent"></div>
+                        <div id="totalCost" class="total-cost"></div>
+                        
+                        <!-- Поле для копирования итогового текста -->
+                        <div class="summary-section">
+                            <h4>Итоговый текст для треда в mm</h4>
+                            <textarea id="summaryText" class="summary-textarea" readonly></textarea>
+                            <button id="copySummary" class="btn-secondary">Копировать текст</button>
+                        </div>
+                    </div>
+
+                    <!-- Модальное окно для отображения данных -->
+                    <div id="dataModal" class="modal" style="display: none;">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            <h3>Загруженные данные о ценах</h3>
+                            <div id="dataContent"></div>
+                            <button id="updateData" class="btn-primary">Обновить данные</button>
+                        </div>
+                    </div>
+
+                    <!-- Модальное окно для обновления данных -->
+                    <div id="updateModal" class="modal" style="display: none;">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            <h3>Обновление данных</h3>
+                            <textarea id="dataInput" rows="20" cols="80" placeholder="Вставьте JSON данные здесь..."></textarea>
+                            <div class="modal-buttons">
+                                <button id="saveData" class="btn-primary">Сохранить</button>
+                                <button id="cancelUpdate" class="btn-secondary">Отмена</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Секция админ панели - скрыта по умолчанию -->
+            <div id="admin-section" class="content-section" style="display: none;">
+                <div class="container">
+                    <header>
+                        <h1>Панель администратора</h1>
+                    </header>
+
+                    <div class="admin-tabs">
+                        <button class="admin-tab active" data-tab="pending">Ожидающие одобрения</button>
+                        <button class="admin-tab" data-tab="users">Все пользователи</button>
+                        <button class="admin-tab" data-tab="preapproved">Предодобренные email</button>
+                    </div>
+
+                    <div class="admin-content">
+                        <!-- Вкладка ожидающих одобрения -->
+                        <div id="pending-tab" class="admin-tab-content active">
+                            <h3>Пользователи, ожидающие одобрения</h3>
+                            <div id="pendingUsersList" class="users-list">
+                                <p>Загрузка...</p>
+                            </div>
+                        </div>
+
+                        <!-- Вкладка всех пользователей -->
+                        <div id="users-tab" class="admin-tab-content" style="display: none;">
+                            <h3>Все пользователи</h3>
+                            <div class="users-filter">
+                                <input type="text" id="userSearch" placeholder="Поиск по email или имени">
+                                <select id="statusFilter">
+                                    <option value="">Все статусы</option>
+                                    <option value="approved">Одобренные</option>
+                                    <option value="pending">Ожидающие</option>
+                                    <option value="rejected">Отклоненные</option>
+                                </select>
+                            </div>
+                            <div id="allUsersList" class="users-list">
+                                <p>Загрузка...</p>
+                            </div>
+                        </div>
+
+                        <!-- Вкладка предодобренных email -->
+                        <div id="preapproved-tab" class="admin-tab-content" style="display: none;">
+                            <h3>Предодобренные email адреса</h3>
+                            <div class="add-email-form">
+                                <input type="email" id="newPreapprovedEmail" placeholder="email@example.com">
+                                <button id="addPreapprovedBtn" class="btn-primary">Добавить</button>
+                            </div>
+                            <div id="preapprovedList" class="users-list">
+                                <p>Загрузка...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Скрипт проверки авторизации -->
+    <script>
+        // Проверка авторизации при загрузке страницы
+        fetch('/api/auth/check-status.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.authorized || data.status !== 'approved') {
+                    // Не авторизован или не одобрен - редирект
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Проверяем роль для отображения админ панели
+                if (data.role === 'admin') {
+                    console.log('Пользователь - админ, показываем админ панель');
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.style.display = 'flex';
+                    });
+                }
+                
+                // Сохраняем данные пользователя
+                window.currentUser = {
+                    email: data.email,
+                    role: data.role,
+                    name: data.name
+                };
+            })
+            .catch(error => {
+                console.error('Ошибка проверки авторизации:', error);
+                window.location.href = '/';
+            });
+
+        // Обработка выхода
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('Вы уверены, что хотите выйти?')) {
+                fetch('/api/auth/logout.php')
+                    .then(() => {
+                        window.location.href = '/';
+                    });
+            }
+        });
+
+        // Переключение между секциями
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    
+                    // Убираем активный класс со всех пунктов
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    // Добавляем активный класс текущему
+                    this.classList.add('active');
+                    
+                    // Скрываем все секции
+                    document.querySelectorAll('.content-section').forEach(sec => {
+                        sec.style.display = 'none';
+                        sec.classList.remove('active');
+                    });
+                    
+                    // Показываем нужную секцию
+                    const targetSection = document.getElementById(`${section}-section`);
+                    if (targetSection) {
+                        targetSection.style.display = 'block';
+                        targetSection.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+
+    <script src="js/data.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

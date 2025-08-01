@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обработка входа...</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <script src="https://yastatic.net/s3/passport-sdk/autofill/v1/sdk-suggest-token-with-polyfills-latest.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #EDEEF5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+        .processing {
+            text-align: center;
+            color: #2d3748;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(96, 41, 229, 0.1);
+            border-top-color: #6029E5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="processing">
+        <div class="spinner"></div>
+        <h2>Обработка данных...</h2>
+        <p>Пожалуйста, подождите</p>
+    </div>
+
+    <script>
+        // Отправляем токен обратно на страницу логина
+        YaSendSuggestToken('https://domy-calculator.ru/login.html');
+
+        // Получаем токен из URL
+        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = urlParams.get('access_token');
+
+        if (accessToken) {
+            // Отправляем токен на сервер для обработки
+            fetch('/api/auth/process-token.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: accessToken
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Редирект в зависимости от статуса
+                    if (data.status === 'approved') {
+                        window.location.href = '/app.html';
+                    } else if (data.status === 'pending') {
+                        window.location.href = '/waiting.html';
+                    } else {
+                        window.location.href = '/login.html?error=rejected';
+                    }
+                } else {
+                    console.error('Ошибка обработки токена:', data.error);
+                    window.location.href = '/login.html?error=processing';
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                window.location.href = '/login.html?error=network';
+            });
+        } else {
+            // Нет токена - возвращаем на логин
+            window.location.href = '/login.html?error=no_token';
+        }
+    </script>
+</body>
+</html>

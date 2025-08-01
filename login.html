@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему - Калькулятор Domy</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="stylesheet" href="css/login-styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-section">
+                <img src="assets/logo.png" alt="Domy Logo" class="logo">
+                <h1>Калькулятор стоимости продуктов</h1>
+            </div>
+            
+            <div class="login-content">
+                <p class="login-description">
+                    Для доступа к калькулятору необходима авторизация через корпоративный аккаунт
+                </p>
+                
+                <!-- Обычная кнопка вместо SDK -->
+                <a href="https://oauth.yandex.ru/authorize?response_type=token&client_id=c712414d0b7f462a8275474444e00239&redirect_uri=https://xml-editor.ru/callback.html" class="yandex-login-btn">
+                    <svg class="yandex-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 24C18.6274 24 24 18.6274 24 12C24 5.37258 18.6274 0 12 0C5.37258 0 0 5.37258 0 12C0 18.6274 5.37258 24 12 24Z" fill="#FC3F1D"/>
+                        <path d="M13.8892 7.99999H12.4592C10.6692 7.99999 9.95919 8.97999 9.95919 10.44C9.95919 12.11 10.7392 12.92 12.0892 13.94L13.3192 14.88L10.0392 20H7.41919L10.3992 15.39C8.67919 14.13 7.62919 12.95 7.62919 10.59C7.62919 7.76999 9.50919 5.99999 12.4592 5.99999H16.2192V20H13.8892V7.99999Z" fill="white"/>
+                    </svg>
+                    <span>Войти через Яндекс ID</span>
+                </a>
+                
+                <p class="login-note">
+                    Используйте ваш рабочий аккаунт Яндекс
+                </p>
+            </div>
+            
+            <div class="login-footer">
+                <p>После авторизации ваш запрос будет отправлен на проверку администратору</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

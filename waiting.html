@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ожидание одобрения - Калькулятор Domy</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="stylesheet" href="css/waiting-styles.css">
+</head>
+<body>
+    <div class="waiting-container">
+        <div class="waiting-card">
+            <div class="status-icon pending">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            
+            <h1>Ваша заявка на рассмотрении</h1>
+            
+            <div class="user-info">
+                <p class="user-email" id="userEmail">Загрузка...</p>
+                <p class="request-date" id="requestDate">Дата заявки: загрузка...</p>
+            </div>
+            
+            <div class="status-message">
+                <p>Администратор рассмотрит вашу заявку в ближайшее время.</p>
+                <p>Вы получите уведомление на email после одобрения доступа.</p>
+            </div>
+            
+            <div class="actions">
+                <button class="check-status-btn" id="checkStatusBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+                    </svg>
+                    Проверить статус
+                </button>
+                
+                <button class="logout-btn" id="logoutBtn">
+                    Выйти
+                </button>
+            </div>
+            
+            <div class="auto-check-info">
+                <p>Статус проверяется автоматически каждые 30 секунд</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let checkInterval;
+        let progressInterval;
+        let progress = 0;
+
+        // Загружаем информацию о пользователе
+        function loadUserInfo() {
+            fetch('/api/auth/get-user-info.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('userEmail').textContent = data.email;
+                        const date = new Date(data.created_at);
+                        document.getElementById('requestDate').textContent = 
+                            `Дата заявки: ${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU')}`;
+                    }
+                })
+                .catch(error => console.error('Ошибка загрузки данных:', error));
+        }
+
+        // Проверка статуса
+        function checkStatus() {
+            fetch('/api/auth/check-status.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'approved') {
+                        // Одобрено! Редирект на основное приложение
+                        window.location.href = '/app.html';
+                    } else if (data.status === 'rejected') {
+                        // Отклонено
+                        alert('К сожалению, ваша заявка была отклонена.');
+                        window.location.href = '/login.html';
+                    }
+                    // Если pending - продолжаем ждать
+                })
+                .catch(error => console.error('Ошибка проверки статуса:', error));
+        }
+
+        // Прогресс бар
+        function updateProgress() {
+            progress += 100 / 30; // 30 секунд
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            if (progress >= 100) {
+                progress = 0;
+                checkStatus();
+            }
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserInfo();
+            checkStatus(); // Первая проверка сразу
+
+            // Автоматическая проверка каждые 30 секунд
+            checkInterval = setInterval(checkStatus, 30000);
+            progressInterval = setInterval(updateProgress, 1000);
+
+            // Кнопка ручной проверки
+            document.getElementById('checkStatusBtn').addEventListener('click', function() {
+                progress = 0;
+                checkStatus();
+            });
+
+            // Кнопка выхода
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                if (confirm('Вы уверены, что хотите выйти?')) {
+                    window.location.href = '/api/auth/logout.php';
+                }
+            });
+        });
+
+        // Очистка интервалов при уходе со страницы
+        window.addEventListener('beforeunload', function() {
+            clearInterval(checkInterval);
+            clearInterval(progressInterval);
+        });
+    </script>
+</body>
+</html>

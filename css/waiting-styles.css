@@ -1,0 +1,179 @@
+/* Стили для страницы ожидания */
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EDEEF5;
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+
+.waiting-container {
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+}
+
+.waiting-card {
+    background: #F8F9FB;
+    border-radius: 24px;
+    padding: 48px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.status-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 32px;
+    position: relative;
+}
+
+.status-icon.pending {
+    color: #6029E5;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.waiting-card h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 24px 0;
+}
+
+.user-info {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 32px;
+    border: 1px solid #e2e8f0;
+}
+
+.user-email {
+    font-size: 18px;
+    font-weight: 500;
+    color: #2d3748;
+    margin: 0 0 8px 0;
+}
+
+.request-date {
+    font-size: 14px;
+    color: #718096;
+    margin: 0;
+}
+
+.status-message {
+    margin-bottom: 32px;
+}
+
+.status-message p {
+    font-size: 16px;
+    color: #4a5568;
+    line-height: 1.6;
+    margin: 8px 0;
+}
+
+.actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 32px;
+}
+
+.check-status-btn {
+    background: #6029E5;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.check-status-btn:hover {
+    background: #4c1d95;
+    transform: translateY(-1px);
+}
+
+.check-status-btn svg {
+    animation: rotate 2s linear infinite;
+    animation-play-state: paused;
+}
+
+.check-status-btn:hover svg {
+    animation-play-state: running;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.logout-btn {
+    background: transparent;
+    color: #6029E5;
+    border: 2px solid #6029E5;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: #6029E5;
+    color: white;
+}
+
+.auto-check-info {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 24px;
+}
+
+.auto-check-info p {
+    font-size: 14px;
+    color: #718096;
+    margin: 0 0 16px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #6029E5;
+    width: 0%;
+    transition: width 1s linear;
+}

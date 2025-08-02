@@ -69,8 +69,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    background: #FFCC00;
-    color: #000000;
+    background: #6029E5;
+    color: white;
     text-decoration: none;
     padding: 16px 32px;
     border-radius: 8px;
@@ -82,7 +82,7 @@ body {
 }
 
 .yandex-login-btn:hover {
-    background: #FFD633;
+    background: #E1DAF8;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

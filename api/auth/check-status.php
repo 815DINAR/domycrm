@@ -44,10 +44,12 @@ try {
     // Возвращаем данные
     sendJsonResponse([
         'authorized' => true,
+        'id' => $user['id'],
         'status' => $user['status'],
         'role' => $user['role'],
         'email' => $user['email'],
-        'name' => $user['name']
+        'name' => $user['name'],
+        'created_at' => $user['created_at'] // Добавляем дату создания
     ]);
     
 } catch (Exception $e) {

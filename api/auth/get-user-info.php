@@ -3,8 +3,10 @@
 
 require_once '../config.php';
 
-// Проверяем авторизацию
-if (!checkAuth()) {
+startSecureSession();
+
+// Проверяем наличие сессии (но не требуем approved статус)
+if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     sendJsonResponse(['success' => false, 'error' => 'Unauthorized']);
 }

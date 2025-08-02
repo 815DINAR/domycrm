@@ -1,5 +1,203 @@
 // admin.js - Логика работы админ панели
 
+// Глобальные функции для управления пользователями (должны быть доступны из HTML)
+window.approveUser = async function(userId) {
+    if (!confirm('Одобрить доступ этому пользователю?')) return;
+    
+    try {
+        const response = await fetch('/api/admin/approve-user.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_id: userId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAdminNotification('Пользователь одобрен', 'success');
+            // Удаляем элемент из списка
+            const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+            if (userItem) userItem.remove();
+            
+            // Проверяем, остались ли еще пользователи
+            const container = document.getElementById('pendingUsersList');
+            if (!container.querySelector('.user-item')) {
+                loadPendingUsers();
+            }
+        } else {
+            showAdminNotification('Ошибка: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAdminNotification('Ошибка сети', 'error');
+        console.error('Ошибка одобрения:', error);
+    }
+}
+
+window.rejectUser = async function(userId) {
+    if (!confirm('Отклонить заявку этого пользователя?')) return;
+    
+    try {
+        const response = await fetch('/api/admin/reject-user.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_id: userId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAdminNotification('Заявка отклонена', 'success');
+            const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+            if (userItem) userItem.remove();
+            
+            const container = document.getElementById('pendingUsersList');
+            if (!container.querySelector('.user-item')) {
+                loadPendingUsers();
+            }
+        } else {
+            showAdminNotification('Ошибка: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAdminNotification('Ошибка сети', 'error');
+        console.error('Ошибка отклонения:', error);
+    }
+}
+
+window.changeUserStatus = async function(userId, newStatus) {
+    try {
+        const response = await fetch('/api/admin/update-user-status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                user_id: userId,
+                status: newStatus 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAdminNotification('Статус пользователя изменен', 'success');
+            // Обновляем отображение статуса
+            const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+            if (userItem) {
+                const statusSpan = userItem.querySelector('.user-status');
+                statusSpan.className = `user-status ${newStatus}`;
+                statusSpan.textContent = getStatusText(newStatus);
+            }
+        } else {
+            showAdminNotification('Ошибка: ' + data.error, 'error');
+            // Возвращаем предыдущее значение в селекте
+            loadAllUsers();
+        }
+    } catch (error) {
+        showAdminNotification('Ошибка сети', 'error');
+        console.error('Ошибка изменения статуса:', error);
+        loadAllUsers();
+    }
+}
+
+window.changeUserRole = async function(userId, newRole) {
+    if (!confirm(`Изменить роль пользователя на "${newRole === 'admin' ? 'Администратор' : 'Сотрудник'}"?`)) {
+        loadAllUsers();
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/update-user-role.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                user_id: userId,
+                role: newRole 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAdminNotification('Роль пользователя изменена', 'success');
+            loadAllUsers(); // Перезагружаем список для обновления отображения
+        } else {
+            showAdminNotification('Ошибка: ' + data.error, 'error');
+            loadAllUsers();
+        }
+    } catch (error) {
+        showAdminNotification('Ошибка сети', 'error');
+        console.error('Ошибка изменения роли:', error);
+        loadAllUsers();
+    }
+}
+
+window.deleteUser = async function(userId) {
+    if (!confirm('Вы уверены, что хотите удалить этого пользователя? Это действие необратимо.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/delete-user.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_id: userId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAdminNotification('Пользователь удален', 'success');
+            // Удаляем элемент из списка
+            const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+            if (userItem) {
+                userItem.style.transition = 'all 0.3s ease';
+                userItem.style.opacity = '0';
+                userItem.style.transform = 'translateX(-20px)';
+                setTimeout(() => userItem.remove(), 300);
+            }
+        } else {
+            showAdminNotification('Ошибка: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAdminNotification('Ошибка сети', 'error');
+        console.error('Ошибка удаления:', error);
+    }
+}
+
+window.removePreapprovedEmail = async function(emailId) {
+    if (!confirm('Удалить этот email из списка предодобренных?')) return;
+    
+    try {
+        const response = await fetch('/api/admin/remove-preapproved-email.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id: emailId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAdminNotification('Email удален', 'success');
+            loadPreapprovedEmails();
+        } else {
+            showAdminNotification('Ошибка: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAdminNotification('Ошибка сети', 'error');
+        console.error('Ошибка удаления email:', error);
+    }
+}
+
 // Переключение вкладок админки
 document.addEventListener('DOMContentLoaded', function() {
     // Проверяем, что мы на странице с админкой
@@ -77,10 +275,6 @@ async function loadPendingUsers() {
         } else {
             container.innerHTML = `
                 <div class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 11l3 3L22 4"></path>
-                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
-                    </svg>
                     <p>Нет пользователей, ожидающих одобрения</p>
                 </div>
             `;
@@ -88,74 +282,6 @@ async function loadPendingUsers() {
     } catch (error) {
         container.innerHTML = '<p style="color: red;">Ошибка загрузки данных</p>';
         console.error('Ошибка загрузки pending users:', error);
-    }
-}
-
-// Одобрение пользователя
-async function approveUser(userId) {
-    if (!confirm('Одобрить доступ этому пользователю?')) return;
-    
-    try {
-        const response = await fetch('/api/admin/approve-user.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ user_id: userId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showAdminNotification('Пользователь одобрен', 'success');
-            // Удаляем элемент из списка
-            const userItem = document.querySelector(`[data-user-id="${userId}"]`);
-            if (userItem) userItem.remove();
-            
-            // Проверяем, остались ли еще пользователи
-            const container = document.getElementById('pendingUsersList');
-            if (!container.querySelector('.user-item')) {
-                loadPendingUsers();
-            }
-        } else {
-            showAdminNotification('Ошибка: ' + data.error, 'error');
-        }
-    } catch (error) {
-        showAdminNotification('Ошибка сети', 'error');
-        console.error('Ошибка одобрения:', error);
-    }
-}
-
-// Отклонение пользователя
-async function rejectUser(userId) {
-    if (!confirm('Отклонить заявку этого пользователя?')) return;
-    
-    try {
-        const response = await fetch('/api/admin/reject-user.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ user_id: userId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showAdminNotification('Заявка отклонена', 'success');
-            const userItem = document.querySelector(`[data-user-id="${userId}"]`);
-            if (userItem) userItem.remove();
-            
-            const container = document.getElementById('pendingUsersList');
-            if (!container.querySelector('.user-item')) {
-                loadPendingUsers();
-            }
-        } else {
-            showAdminNotification('Ошибка: ' + data.error, 'error');
-        }
-    } catch (error) {
-        showAdminNotification('Ошибка сети', 'error');
-        console.error('Ошибка отклонения:', error);
     }
 }
 
@@ -170,20 +296,35 @@ async function loadAllUsers() {
         
         if (data.success && data.users.length > 0) {
             container.innerHTML = data.users.map(user => `
-                <div class="user-item">
+                <div class="user-item" data-user-id="${user.id}">
                     <div class="user-info-admin">
                         <div class="user-email-admin">
                             ${user.email}
                             <span class="user-status ${user.status}">${getStatusText(user.status)}</span>
+                            ${user.role === 'admin' ? '<span class="user-role admin">Администратор</span>' : ''}
                         </div>
                         <div class="user-meta">
                             ${user.name ? `${user.name} • ` : ''}
-                            ${user.role === 'admin' ? 'Администратор • ' : ''}
                             Зарегистрирован: ${new Date(user.created_at).toLocaleDateString('ru-RU')}
                         </div>
                     </div>
+                    <div class="user-actions">
+                        <select class="status-select" onchange="changeUserStatus(${user.id}, this.value)" ${user.id == window.currentUser?.id ? 'disabled' : ''}>
+                            <option value="pending" ${user.status === 'pending' ? 'selected' : ''}>Ожидает</option>
+                            <option value="approved" ${user.status === 'approved' ? 'selected' : ''}>Одобрен</option>
+                            <option value="rejected" ${user.status === 'rejected' ? 'selected' : ''}>Отклонен</option>
+                        </select>
+                        <select class="role-select" onchange="changeUserRole(${user.id}, this.value)">
+                            <option value="employee" ${user.role === 'employee' ? 'selected' : ''}>Сотрудник</option>
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+                        </select>
+                        <button class="btn-delete" onclick="deleteUser(${user.id})" ${user.id == window.currentUser?.id ? 'disabled' : ''}>Удалить</button>
+                    </div>
                 </div>
             `).join('');
+            
+            // Сохраняем ID текущего пользователя для проверок
+            window.currentUserId = window.currentUser?.id;
         } else {
             container.innerHTML = '<p>Нет пользователей</p>';
         }
@@ -263,33 +404,6 @@ document.getElementById('addPreapprovedBtn')?.addEventListener('click', async fu
         console.error('Ошибка добавления email:', error);
     }
 });
-
-// Удаление предодобренного email
-async function removePreapprovedEmail(emailId) {
-    if (!confirm('Удалить этот email из списка предодобренных?')) return;
-    
-    try {
-        const response = await fetch('/api/admin/remove-preapproved-email.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id: emailId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showAdminNotification('Email удален', 'success');
-            loadPreapprovedEmails();
-        } else {
-            showAdminNotification('Ошибка: ' + data.error, 'error');
-        }
-    } catch (error) {
-        showAdminNotification('Ошибка сети', 'error');
-        console.error('Ошибка удаления email:', error);
-    }
-}
 
 // Поиск пользователей
 document.getElementById('userSearch')?.addEventListener('input', function(e) {

@@ -1,0 +1,86 @@
+# Включаем модуль перезаписи URL
+RewriteEngine On
+
+# Настройки PHP для длительных сессий
+php_value session.gc_maxlifetime 2592000
+php_value session.cookie_lifetime 2592000
+php_value session.save_path "/tmp/domy_sessions"
+
+# Базовые настройки безопасности
+Options -Indexes
+
+# Защита конфигурационного файла
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Настройки для favicon
+<Files "favicon.ico">
+    AddType image/x-icon .ico
+    Header set Cache-Control "public, max-age=2592000"
+</Files>
+
+# Защита от XSS атак
+<IfModule mod_headers.c>
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+# ====================
+# КРАСИВЫЕ URL
+# ====================
+
+# Удаляем .html расширение из URL
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^\.]+)$ $1.html [NC,L]
+
+# Редирект с .html на красивый URL (для старых ссылок)
+RewriteCond %{THE_REQUEST} \s/+(.+?)\.html[\s?] [NC]
+RewriteRule ^ /%1 [R=301,L]
+
+# Красивые URL для основных страниц
+RewriteRule ^login/?$ login.html [L]
+RewriteRule ^app/?$ app.html [L]
+RewriteRule ^waiting/?$ waiting.html [L]
+
+# Главная страница
+RewriteRule ^$ index.html [L]
+
+# API остается без изменений
+RewriteRule ^api/(.*)$ api/$1 [L]
+
+# Статические файлы
+RewriteRule ^(css|js|assets|images)/(.*)$ $1/$2 [L]
+
+# ====================
+# КЕШИРОВАНИЕ
+# ====================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# ====================
+# СЖАТИЕ
+# ====================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json
+</IfModule>
+
+# Установка кодировки
+AddDefaultCharset UTF-8
+
+# Защита от доступа к .git и другим скрытым файлам
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

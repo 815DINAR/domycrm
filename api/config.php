@@ -67,7 +67,7 @@ function startSecureSession() {
 }
 
 // Функция проверки авторизации
-function checkAuth() {
+function checkAuth($requireApproved = true) {
     startSecureSession();
     
     if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_status'])) {
@@ -81,9 +81,14 @@ function checkAuth() {
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
         
-        if (!$user || $user['status'] !== 'approved') {
-            // Очищаем сессию если пользователь не найден или не одобрен
+        if (!$user) {
+            // Пользователь не найден - очищаем сессию
             session_destroy();
+            return false;
+        }
+        
+        // Если требуется статус approved
+        if ($requireApproved && $user['status'] !== 'approved') {
             return false;
         }
         

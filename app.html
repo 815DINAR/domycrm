@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор стоимости продуктов</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>Domyland Tools</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="image/logo.png">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -12,7 +13,7 @@
         <!-- Боковая панель навигации -->
         <aside class="navigation-sidebar">
             <div class="sidebar-header">
-                <h2 class="sidebar-title">Меню</h2>
+                <h2 class="sidebar-title">Domyland Tools</h2>
             </div>
             
             <nav class="sidebar-nav">
@@ -24,7 +25,7 @@
                             <path d="M8 13h6"/>
                             <path d="M8 17h4"/>
                         </svg>
-                        <span>Калькулятор продуктов</span>
+                        <span>Калькулятор стоимости</span>
                     </div>
                     
                     <!-- Админ панель - скрыта по умолчанию -->
@@ -35,7 +36,7 @@
                             <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
-                        <span>Админ панель</span>
+                        <span>Настройки</span>
                     </div>
                 </div>
                 
@@ -59,7 +60,7 @@
             <div id="calculator-section" class="content-section active">
                 <div class="container">
                     <header>
-                        <h1><img src="logo.png" alt="Logo" style="height: 1em; vertical-align: baseline; margin-right: 10px;"> Калькулятор стоимости продуктов</h1>
+                        <h1> Калькулятор стоимости продуктов</h1>
                         <a href="https://cypress-lantana-0e0.notion.site/22332fd3ba2d80efa0afc3a220c28ca2?source=copy_link" class="instruction-btn">Инструкция</a>
                     </header>
 
@@ -245,48 +246,50 @@
 
     <!-- Скрипт проверки авторизации -->
     <script>
-        // Проверка авторизации при загрузке страницы
-        fetch('/api/auth/check-status.php')
-            .then(response => response.json())
-            .then(data => {
-                if (!data.authorized || data.status !== 'approved') {
-                    // Не авторизован или не одобрен - редирект
+        // Ждем загрузки DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверка авторизации при загрузке страницы
+            fetch('/api/auth/check-status.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.authorized || data.status !== 'approved') {
+                        // Не авторизован или не одобрен - редирект
+                        window.location.href = '/';
+                        return;
+                    }
+                    
+                    // Проверяем роль для отображения админ панели
+                    if (data.role === 'admin') {
+                        console.log('Пользователь - админ, показываем админ панель');
+                        document.querySelectorAll('.admin-only').forEach(el => {
+                            el.style.display = 'flex';
+                        });
+                    }
+                    
+                    // Сохраняем данные пользователя
+                    window.currentUser = {
+                        id: data.id || null, // Добавляем ID пользователя
+                        email: data.email,
+                        role: data.role,
+                        name: data.name
+                    };
+                })
+                .catch(error => {
+                    console.error('Ошибка проверки авторизации:', error);
                     window.location.href = '/';
-                    return;
+                });
+
+            // Обработка выхода
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                if (confirm('Вы уверены, что хотите выйти?')) {
+                    fetch('/api/auth/logout.php')
+                        .then(() => {
+                            window.location.href = '/';
+                        });
                 }
-                
-                // Проверяем роль для отображения админ панели
-                if (data.role === 'admin') {
-                    console.log('Пользователь - админ, показываем админ панель');
-                    document.querySelectorAll('.admin-only').forEach(el => {
-                        el.style.display = 'flex';
-                    });
-                }
-                
-                // Сохраняем данные пользователя
-                window.currentUser = {
-                    email: data.email,
-                    role: data.role,
-                    name: data.name
-                };
-            })
-            .catch(error => {
-                console.error('Ошибка проверки авторизации:', error);
-                window.location.href = '/';
             });
 
-        // Обработка выхода
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            if (confirm('Вы уверены, что хотите выйти?')) {
-                fetch('/api/auth/logout.php')
-                    .then(() => {
-                        window.location.href = '/';
-                    });
-            }
-        });
-
-        // Переключение между секциями
-        document.addEventListener('DOMContentLoaded', function() {
+            // Переключение между секциями
             document.querySelectorAll('.nav-item[data-section]').forEach(item => {
                 item.addEventListener('click', function() {
                     const section = this.getAttribute('data-section');

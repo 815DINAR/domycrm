@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ожидание одобрения - Калькулятор Domy</title>
-    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="image/logo.png">
     <link rel="stylesheet" href="css/waiting-styles.css">
 </head>
 <body>
@@ -58,31 +59,101 @@
         let progressInterval;
         let progress = 0;
 
+        // Сначала проверяем статус авторизации
+        function checkAuthStatus() {
+            fetch('/api/auth/check-status.php')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Auth status:', data);
+                    
+                    if (!data.authorized) {
+                        // Не авторизован - на страницу входа
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    
+                    if (data.status === 'approved') {
+                        // Уже одобрен - на главную
+                        window.location.href = '/app.html';
+                        return;
+                    }
+                    
+                    if (data.status === 'rejected') {
+                        // Отклонен
+                        alert('К сожалению, ваша заявка была отклонена.');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    
+                    // Статус pending - загружаем информацию о пользователе
+                    if (data.email && data.created_at) {
+                        document.getElementById('userEmail').textContent = data.email;
+                        const date = new Date(data.created_at);
+                        document.getElementById('requestDate').textContent = 
+                            `Дата заявки: ${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU')}`;
+                    } else {
+                        // Если нет данных в check-status, пробуем get-user-info
+                        loadUserInfo();
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка проверки статуса:', error);
+                    // При ошибке пробуем загрузить информацию о пользователе
+                    loadUserInfo();
+                });
+        }
+
         // Загружаем информацию о пользователе
         function loadUserInfo() {
             fetch('/api/auth/get-user-info.php')
                 .then(response => response.json())
                 .then(data => {
+                    console.log('User info:', data);
+                    
                     if (data.success) {
                         document.getElementById('userEmail').textContent = data.email;
                         const date = new Date(data.created_at);
                         document.getElementById('requestDate').textContent = 
                             `Дата заявки: ${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU')}`;
+                        
+                        // Проверяем статус
+                        if (data.status === 'approved') {
+                            window.location.href = '/app.html';
+                        } else if (data.status === 'rejected') {
+                            alert('К сожалению, ваша заявка была отклонена.');
+                            window.location.href = '/login.html';
+                        }
+                    } else {
+                        console.error('Ошибка загрузки данных пользователя:', data.error);
+                        document.getElementById('userEmail').textContent = 'Ошибка загрузки данных';
                     }
                 })
-                .catch(error => console.error('Ошибка загрузки данных:', error));
+                .catch(error => {
+                    console.error('Ошибка загрузки данных:', error);
+                    document.getElementById('userEmail').textContent = 'Ошибка загрузки данных';
+                });
         }
 
         // Проверка статуса
         function checkStatus() {
+            // Сбрасываем прогресс
+            progress = 0;
+            document.getElementById('progressBar').style.width = '0%';
+            
             fetch('/api/auth/check-status.php')
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Status check:', data);
+                    
                     if (data.status === 'approved') {
                         // Одобрено! Редирект на основное приложение
+                        clearInterval(checkInterval);
+                        clearInterval(progressInterval);
                         window.location.href = '/app.html';
                     } else if (data.status === 'rejected') {
                         // Отклонено
+                        clearInterval(checkInterval);
+                        clearInterval(progressInterval);
                         alert('К сожалению, ваша заявка была отклонена.');
                         window.location.href = '/login.html';
                     }
@@ -104,8 +175,11 @@
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
-            loadUserInfo();
-            checkStatus(); // Первая проверка сразу
+            // Проверяем авторизацию и загружаем данные
+            checkAuthStatus();
+            
+            // Первая проверка статуса через 2 секунды
+            setTimeout(checkStatus, 2000);
 
             // Автоматическая проверка каждые 30 секунд
             checkInterval = setInterval(checkStatus, 30000);
@@ -114,12 +188,15 @@
             // Кнопка ручной проверки
             document.getElementById('checkStatusBtn').addEventListener('click', function() {
                 progress = 0;
+                document.getElementById('progressBar').style.width = '0%';
                 checkStatus();
             });
 
             // Кнопка выхода
             document.getElementById('logoutBtn').addEventListener('click', function() {
                 if (confirm('Вы уверены, что хотите выйти?')) {
+                    clearInterval(checkInterval);
+                    clearInterval(progressInterval);
                     window.location.href = '/api/auth/logout.php';
                 }
             });

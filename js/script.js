@@ -9,6 +9,42 @@ const MINIAPP_ADDONS = {
     "Миниапп 6": { price: 50000 }
 };
 
+// Категории продуктов
+const PRODUCT_CATEGORIES = {
+    "Сервисы ЖКХ": [
+        "Аварийно-диспетчерская служба",
+        "Счета за ЖКУ",
+        "Счетчики",
+        "Сайт управляющей организации",
+        "Охрана",
+        "Учет рабочего времени"
+    ],
+    "Коммерч.сервисы": [
+        "Клуб привилегий",
+        "Афиша мероприятий",
+        "Места",
+        "Маркетплейс",
+        "Мини приложения(3шт)",
+        "Миниапп 4",
+        "Миниапп 5",
+        "Миниапп 6"
+    ],
+    "Смарт системы": [
+        "Управление домофонами",
+        "Паркинг",
+        "СКУД",
+        "Цифровой лифт",
+        "Видеонаблюдение",
+        "Управление квартирой"
+    ],
+    "Медиа сервисы": [
+        "Новости",
+        "Опросы",
+        "Акции",
+        "Баннеры"
+    ]
+};
+
 function setupModalListeners() {
     // Закрытие модальных окон
     document.querySelectorAll('.close').forEach(closeBtn => {
@@ -32,37 +68,53 @@ function setupModalListeners() {
     });
 }
 
-function initializeProductCheckboxes() {
-    const checkboxList = document.getElementById('productsCheckboxList');
-    const productNames = getProductNames();
+function initializeProductCategories() {
+    const categoriesContainer = document.getElementById('productsCategories');
+    categoriesContainer.innerHTML = '';
     
-    checkboxList.innerHTML = '';
-    
-    productNames.forEach(name => {
-        const checkboxItem = document.createElement('div');
-        checkboxItem.className = 'product-checkbox-item';
+    // Создаем категории
+    for (const [categoryName, products] of Object.entries(PRODUCT_CATEGORIES)) {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'product-category';
         
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `product-checkbox-${name.replace(/\s+/g, '-')}`;
-        checkbox.value = name;
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'category-header';
+        categoryHeader.textContent = categoryName;
         
-        const label = document.createElement('label');
-        label.htmlFor = checkbox.id;
-        label.textContent = name;
+        const categoryProducts = document.createElement('div');
+        categoryProducts.className = 'category-products';
         
-        checkboxItem.appendChild(checkbox);
-        checkboxItem.appendChild(label);
-        checkboxList.appendChild(checkboxItem);
-    });
+        products.forEach(productName => {
+            // Проверяем, существует ли продукт в данных о ценах (кроме миниапп 4,5,6)
+            if (!currentPricingData[productName] && !['Миниапп 4', 'Миниапп 5', 'Миниапп 6'].includes(productName)) {
+                return;
+            }
+            
+            const checkboxItem = document.createElement('div');
+            checkboxItem.className = 'product-checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `product-${productName.replace(/\s+/g, '-')}`;
+            checkbox.value = productName;
+            
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = productName;
+            
+            checkboxItem.appendChild(checkbox);
+            checkboxItem.appendChild(label);
+            categoryProducts.appendChild(checkboxItem);
+        });
+        
+        categoryDiv.appendChild(categoryHeader);
+        categoryDiv.appendChild(categoryProducts);
+        categoriesContainer.appendChild(categoryDiv);
+    }
 }
 
 function addSelectedProducts() {
     const checkboxes = document.querySelectorAll('.product-checkbox-item input[type="checkbox"]:checked');
-    const globalDates = document.getElementById('globalDates').checked;
-    const globalDiscounts = document.getElementById('globalDiscounts').checked;
-    const globalUnits = document.getElementById('globalUnitsEnabled').checked;
-    const calculatorType = document.getElementById('calculatorType').value;
     
     checkboxes.forEach(checkbox => {
         addProductItem(checkbox.value);
@@ -183,6 +235,7 @@ function addProductItem(productName = null) {
     const productItem = document.createElement('div');
     productItem.className = 'product-item';
     productItem.setAttribute('data-id', productCounter);
+    productItem.setAttribute('data-product-name', productName);
     
     const productNames = getProductNames();
     const globalDates = document.getElementById('globalDates').checked;
@@ -217,18 +270,6 @@ function addProductItem(productName = null) {
             <label>Скидка (%):</label>
             <input type="number" class="product-discount-input" min="0" max="100" step="0.01" placeholder="Введите скидку">
         </div>
-        
-        ${productName === 'Мини приложения(3шт)' ? `
-        <div class="miniapp-addon visible">
-            <label>Дополнительные мини-приложения:</label>
-            <select class="miniapp-addon-select">
-                <option value="">Не выбрано</option>
-                <option value="Миниапп 4">Миниапп 4 (+50 000 руб.)</option>
-                <option value="Миниапп 5">Миниапп 5 (+50 000 руб.)</option>
-                <option value="Миниапп 6">Миниапп 6 (+50 000 руб.)</option>
-            </select>
-        </div>
-        ` : ''}
     `;
     
     productsList.appendChild(productItem);
@@ -280,6 +321,7 @@ function saveUpdatedData() {
         
         // Перезагружаем список продуктов
         refreshProductSelects();
+        initializeProductCategories();
     } catch (error) {
         alert('Ошибка в формате JSON: ' + error.message);
     }
@@ -444,7 +486,29 @@ function calculateNewDealCost(typeData, totalUnits) {
     return { totalCost, details };
 }
 
-function calculateProductCost(productName, propertyType, currentUnits, additionalUnits, dateFrom, dateTo, isNewDeal = false, totalUnits = null, miniappAddon = null) {
+function calculateProductCost(productName, propertyType, currentUnits, additionalUnits, dateFrom, dateTo, isNewDeal = false, totalUnits = null) {
+    // Для мини-приложений используем фиксированную цену
+    if (['Миниапп 4', 'Миниапп 5', 'Миниапп 6'].includes(productName)) {
+        const monthlyCost = MINIAPP_ADDONS[productName].price;
+        const periodCalculation = calculatePeriodCostDetailed(monthlyCost, dateFrom, dateTo);
+        
+        return {
+            totalCost: periodCalculation.totalCost,
+            monthlyCost: monthlyCost,
+            tierDetails: [{
+                range: productName,
+                units: 1,
+                price: 'фиксированная цена',
+                cost: monthlyCost
+            }],
+            periodDetails: periodCalculation.details,
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+            isNewDeal: isNewDeal,
+            totalUnits: totalUnits
+        };
+    }
+    
     const productData = currentPricingData[productName];
     
     if (!productData) {
@@ -474,18 +538,6 @@ function calculateProductCost(productName, propertyType, currentUnits, additiona
         details = result.details;
     }
     
-    // Добавляем стоимость дополнительного мини-приложения
-    if (miniappAddon && MINIAPP_ADDONS[miniappAddon]) {
-        const addonCost = MINIAPP_ADDONS[miniappAddon].price;
-        monthlyCost += addonCost;
-        details.push({
-            range: miniappAddon,
-            units: 1,
-            price: 'фиксированная цена',
-            cost: addonCost
-        });
-    }
-    
     if (monthlyCost === null) {
         console.error(`Не удалось рассчитать стоимость`);
         return null;
@@ -502,8 +554,7 @@ function calculateProductCost(productName, propertyType, currentUnits, additiona
         dateFrom: dateFrom,
         dateTo: dateTo,
         isNewDeal: isNewDeal,
-        totalUnits: totalUnits,
-        miniappAddon: miniappAddon
+        totalUnits: totalUnits
     };
 }
 
@@ -724,20 +775,11 @@ function calculateCosts() {
             discount = parseFloat(item.querySelector('.product-discount-input').value) || 0;
         }
         
-        // Проверяем наличие дополнительного мини-приложения
-        let miniappAddon = null;
-        if (productName === 'Мини приложения(3шт)') {
-            const addonSelect = item.querySelector('.miniapp-addon-select');
-            if (addonSelect && addonSelect.value) {
-                miniappAddon = addonSelect.value;
-            }
-        }
-        
         let costResult;
         if (calculatorType === 'new') {
-            costResult = calculateProductCost(productName, propertyType, 0, 0, dateFrom, dateTo, true, units, miniappAddon);
+            costResult = calculateProductCost(productName, propertyType, 0, 0, dateFrom, dateTo, true, units);
         } else {
-            costResult = calculateProductCost(productName, propertyType, currentUnits, units, dateFrom, dateTo, false, null, miniappAddon);
+            costResult = calculateProductCost(productName, propertyType, currentUnits, units, dateFrom, dateTo, false, null);
         }
         
         if (costResult !== null) {
@@ -754,7 +796,6 @@ function calculateCosts() {
                 discountAmount: discountAmount,
                 dateFrom: dateFrom.toLocaleDateString('ru-RU'),
                 dateTo: dateTo.toLocaleDateString('ru-RU'),
-                miniappAddon: miniappAddon,
                 // Детализация расчета
                 calculationDetails: {
                     currentUnits: calculatorType === 'new' ? 0 : currentUnits,
@@ -764,8 +805,7 @@ function calculateCosts() {
                     periodDetails: costResult.periodDetails,
                     propertyType: propertyType,
                     isNewDeal: calculatorType === 'new',
-                    totalUnits: calculatorType === 'new' ? units : currentUnits + units,
-                    miniappAddon: miniappAddon
+                    totalUnits: calculatorType === 'new' ? units : currentUnits + units
                 }
             });
             totalCost += finalCost;
@@ -800,15 +840,11 @@ function displayResults(results, totalCost, dateFrom, dateTo) {
             `<div><strong>Количество помещений:</strong> ${result.additionalUnits}</div>` :
             `<div><strong>Количество добавляемых помещений:</strong> ${result.additionalUnits}</div>`;
         
-        const miniappInfo = result.miniappAddon ? 
-            `<div><strong>Дополнительное мини-приложение:</strong> ${result.miniappAddon}</div>` : '';
-        
         resultItem.innerHTML = `
             <h4>${result.productName}</h4>
             <div class="result-details">
                 <div><strong>Период:</strong> ${result.dateFrom} - ${result.dateTo}</div>
                 ${unitsInfo}
-                ${miniappInfo}
                 ${discountInfo}
             </div>
             <div class="result-cost">Итоговая стоимость: ${result.cost.toLocaleString('ru-RU', {minimumFractionDigits: 2})} руб.</div>
@@ -917,13 +953,7 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
     summaryText += `Тип: ${propertyType}\n\n`;
     
     // Продукты
-    const productNames = results.map(result => {
-        let name = result.productName;
-        if (result.miniappAddon) {
-            name += ` + ${result.miniappAddon}`;
-        }
-        return name;
-    }).join(', ');
+    const productNames = results.map(result => result.productName).join(', ');
     summaryText += `Продукты: ${productNames}\n\n`;
     
     // Количество помещений
@@ -1017,7 +1047,7 @@ function showCalculationDetails(index) {
             
             detailsHTML += `
                 <div style="margin-left: 15px; padding: 8px; background: white; border-radius: 4px; margin-bottom: 5px;">
-                    • Диапазон "${tier.range}": ${tier.units} помещений × ${priceInfo} = ${tier.cost.toLocaleString('ru-RU', {minimumFractionDigits: 2})} руб.
+                    • Диапазон "${tier.range}": ${tier.units} ${tier.units === 1 ? 'помещение' : 'помещений'} × ${priceInfo} = ${tier.cost.toLocaleString('ru-RU', {minimumFractionDigits: 2})} руб.
                 </div>
             `;
         });
@@ -1123,7 +1153,7 @@ function initializeEventListeners() {
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
-    initializeProductCheckboxes(); // Инициализируем чекбоксы продуктов
+    initializeProductCategories(); // Инициализируем категории продуктов
     setDefaultDates();
     
     // Устанавливаем начальное состояние полей

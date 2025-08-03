@@ -143,7 +143,7 @@ const PRICING_DATA = {
             { range: "От 20 000 до 50 000", min: 20000, max: 50000, basePrice: null, unitPrice: 0.99 }
         ]
     },
-    "Управление Домофонами": {
+    "Управление домофонами": {
         "многоквартирный дом": [
             { range: "до 1 000", min: 0, max: 1000, basePrice: 9000, unitPrice: null },
             { range: "От 1 000 до 2 000", min: 1000, max: 2000, basePrice: 9000, unitPrice: 7.20 },

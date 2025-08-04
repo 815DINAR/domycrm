@@ -1,49 +1,5 @@
 // Глобальные переменные
-let currentPricingData = loadPricingData();
 let productCounter = 0;
-
-// Добавляем данные для дополнительных мини-приложений
-const MINIAPP_ADDONS = {
-    "Миниапп 4": { price: 50000 },
-    "Миниапп 5": { price: 50000 },
-    "Миниапп 6": { price: 50000 }
-};
-
-// Категории продуктов
-const PRODUCT_CATEGORIES = {
-    "Сервисы ЖКХ": [
-        "Аварийно-диспетчерская служба",
-        "Счета за ЖКУ",
-        "Счетчики",
-        "Сайт управляющей организации",
-        "Охрана",
-        "Учет рабочего времени"
-    ],
-    "Коммерч.сервисы": [
-        "Клуб привилегий",
-        "Афиша мероприятий",
-        "Места",
-        "Маркетплейс",
-        "Мини приложения(3шт)",
-        "Миниапп 4",
-        "Миниапп 5",
-        "Миниапп 6"
-    ],
-    "Смарт системы": [
-        "Управление домофонами",
-        "Паркинг",
-        "СКУД",
-        "Цифровой лифт",
-        "Видеонаблюдение",
-        "Управление квартирой"
-    ],
-    "Медиа сервисы": [
-        "Новости",
-        "Опросы",
-        "Акции",
-        "Баннеры"
-    ]
-};
 
 function setupModalListeners() {
     // Закрытие модальных окон
@@ -59,21 +15,21 @@ function setupModalListeners() {
             event.target.style.display = 'none';
         }
     });
-    
-    // Кнопки в модальных окнах
-    document.getElementById('updateData').addEventListener('click', showUpdateModal);
-    document.getElementById('saveData').addEventListener('click', saveUpdatedData);
-    document.getElementById('cancelUpdate').addEventListener('click', function() {
-        document.getElementById('updateModal').style.display = 'none';
-    });
 }
 
 function initializeProductCategories() {
     const categoriesContainer = document.getElementById('productsCategories');
     categoriesContainer.innerHTML = '';
     
+    if (!window.currentTariff || !window.currentTariff.data) {
+        categoriesContainer.innerHTML = '<p>Загрузка продуктов...</p>';
+        return;
+    }
+    
+    const categories = window.currentTariff.data.categories || {};
+    
     // Создаем категории
-    for (const [categoryName, products] of Object.entries(PRODUCT_CATEGORIES)) {
+    for (const [categoryName, categoryData] of Object.entries(categories)) {
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'product-category';
         
@@ -84,12 +40,9 @@ function initializeProductCategories() {
         const categoryProducts = document.createElement('div');
         categoryProducts.className = 'category-products';
         
-        products.forEach(productName => {
-            // Проверяем, существует ли продукт в данных о ценах (кроме миниапп 4,5,6)
-            if (!currentPricingData[productName] && !['Миниапп 4', 'Миниапп 5', 'Миниапп 6'].includes(productName)) {
-                return;
-            }
-            
+        const products = categoryData.products || {};
+        
+        for (const [productName, productData] of Object.entries(products)) {
             const checkboxItem = document.createElement('div');
             checkboxItem.className = 'product-checkbox-item';
             
@@ -105,12 +58,17 @@ function initializeProductCategories() {
             checkboxItem.appendChild(checkbox);
             checkboxItem.appendChild(label);
             categoryProducts.appendChild(checkboxItem);
-        });
+        }
         
         categoryDiv.appendChild(categoryHeader);
         categoryDiv.appendChild(categoryProducts);
         categoriesContainer.appendChild(categoryDiv);
     }
+}
+
+// Обновляем функцию обновления категорий
+function updateProductCategories() {
+    initializeProductCategories();
 }
 
 function addSelectedProducts() {
@@ -237,21 +195,15 @@ function addProductItem(productName = null) {
     productItem.setAttribute('data-id', productCounter);
     productItem.setAttribute('data-product-name', productName);
     
-    const productNames = getProductNames();
     const globalDates = document.getElementById('globalDates').checked;
     const globalDiscounts = document.getElementById('globalDiscounts').checked;
     const globalUnits = document.getElementById('globalUnitsEnabled').checked;
     const calculatorType = document.getElementById('calculatorType').value;
     
     const productNameDisplay = productName ? `<h4 style="margin: 0 0 10px 0; color: #2d3748;">${productName}</h4>` : '';
-    const selectorDisplay = productName ? 'style="display: none;"' : '';
     
     productItem.innerHTML = `
         ${productNameDisplay}
-        <select class="product-select" required ${selectorDisplay}>
-            <option value="">Выберите продукт</option>
-            ${productNames.map(name => `<option value="${name}" ${name === productName ? 'selected' : ''}>${name}</option>`).join('')}
-        </select>
         <input type="number" class="units-input" placeholder="Количество помещений" min="1" required style="display: ${globalUnits || calculatorType === 'new' ? 'none' : 'block'};">
         <button type="button" class="remove-product" onclick="removeProduct(${productCounter})">Удалить</button>
         
@@ -289,60 +241,6 @@ function removeProduct(id) {
     if (productItem) {
         productItem.remove();
     }
-}
-
-function showPricingDataModal() {
-    const modal = document.getElementById('dataModal');
-    const content = document.getElementById('dataContent');
-    
-    content.textContent = JSON.stringify(currentPricingData, null, 2);
-    modal.style.display = 'block';
-}
-
-function showUpdateModal() {
-    document.getElementById('dataModal').style.display = 'none';
-    const modal = document.getElementById('updateModal');
-    const input = document.getElementById('dataInput');
-    
-    input.value = JSON.stringify(currentPricingData, null, 2);
-    modal.style.display = 'block';
-}
-
-function saveUpdatedData() {
-    const input = document.getElementById('dataInput');
-    
-    try {
-        const newData = JSON.parse(input.value);
-        currentPricingData = newData;
-        savePricingData(newData);
-        
-        document.getElementById('updateModal').style.display = 'none';
-        alert('Данные успешно обновлены!');
-        
-        // Перезагружаем список продуктов
-        refreshProductSelects();
-        initializeProductCategories();
-    } catch (error) {
-        alert('Ошибка в формате JSON: ' + error.message);
-    }
-}
-
-function refreshProductSelects() {
-    const selects = document.querySelectorAll('.product-select');
-    const productNames = getProductNames();
-    
-    selects.forEach(select => {
-        const currentValue = select.value;
-        select.innerHTML = `
-            <option value="">Выберите продукт</option>
-            ${productNames.map(name => `<option value="${name}" ${name === currentValue ? 'selected' : ''}>${name}</option>`).join('')}
-        `;
-    });
-    
-    // Обновляем видимость полей для всех продуктов
-    toggleGlobalDates();
-    toggleGlobalDiscounts();
-    toggleGlobalUnits();
 }
 
 function calculateTieredCost(typeData, currentUnits, additionalUnits) {
@@ -487,37 +385,34 @@ function calculateNewDealCost(typeData, totalUnits) {
 }
 
 function calculateProductCost(productName, propertyType, currentUnits, additionalUnits, dateFrom, dateTo, isNewDeal = false, totalUnits = null) {
-    // Для мини-приложений используем фиксированную цену
-    if (['Миниапп 4', 'Миниапп 5', 'Миниапп 6'].includes(productName)) {
-        const monthlyCost = MINIAPP_ADDONS[productName].price;
-        const periodCalculation = calculatePeriodCostDetailed(monthlyCost, dateFrom, dateTo);
-        
-        return {
-            totalCost: periodCalculation.totalCost,
-            monthlyCost: monthlyCost,
-            tierDetails: [{
-                range: productName,
-                units: 1,
-                price: 'фиксированная цена',
-                cost: monthlyCost
-            }],
-            periodDetails: periodCalculation.details,
-            dateFrom: dateFrom,
-            dateTo: dateTo,
-            isNewDeal: isNewDeal,
-            totalUnits: totalUnits
-        };
-    }
-    
-    const productData = currentPricingData[productName];
-    
-    if (!productData) {
-        console.error(`Продукт "${productName}" не найден`);
+    if (!window.currentTariff || !window.currentTariff.data) {
+        console.error('Тариф не загружен');
         return null;
     }
     
-    // Для "Каталог проектов" используем общие тарифы
-    const typeData = productData[propertyType] || productData['общий'];
+    // Ищем продукт в категориях
+    let productData = null;
+    const categories = window.currentTariff.data.categories || {};
+    
+    for (const categoryData of Object.values(categories)) {
+        if (categoryData.products && categoryData.products[productName]) {
+            productData = categoryData.products[productName];
+            break;
+        }
+    }
+    
+    if (!productData) {
+        console.error(`Продукт "${productName}" не найден в тарифе`);
+        return null;
+    }
+    
+    // Проверяем наличие данных для типа недвижимости
+    let typeData = productData[propertyType];
+    
+    // Если нет данных для конкретного типа, проверяем фиксированную цену
+    if (!typeData && productData['фиксированная цена']) {
+        typeData = productData['фиксированная цена'];
+    }
     
     if (!typeData) {
         console.error(`Тип "${propertyType}" не найден для продукта "${productName}"`);
@@ -728,8 +623,7 @@ function calculateCosts() {
     let totalCost = 0;
     
     productItems.forEach(item => {
-        const productSelect = item.querySelector('.product-select');
-        const productName = productSelect.value || productSelect.parentElement.querySelector('h4')?.textContent;
+        const productName = item.getAttribute('data-product-name');
         
         if (!productName) {
             return;
@@ -892,7 +786,14 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
     const globalDiscounts = document.getElementById('globalDiscounts').checked;
     const globalUnitsEnabled = document.getElementById('globalUnitsEnabled').checked;
     
+    // Получаем информацию о выбранном тарифе
+    const tariffSelect = document.getElementById('tariffSelect');
+    const selectedTariff = tariffSelect.options[tariffSelect.selectedIndex].text;
+    
     let summaryText = '';
+    
+    // Добавляем информацию о тарифе
+    summaryText += `Расчет по тарифу: ${selectedTariff}\n\n`;
     
     // Тип сделки
     summaryText += `Тип сделки: ${calculatorType === 'new' ? 'Новая сделка' : 'Увеличение помещений'}\n\n`;
@@ -1153,7 +1054,6 @@ function initializeEventListeners() {
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
-    initializeProductCategories(); // Инициализируем категории продуктов
     setDefaultDates();
     
     // Устанавливаем начальное состояние полей

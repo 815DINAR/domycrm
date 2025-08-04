@@ -64,6 +64,12 @@
     margin-bottom: 20px;
     overflow: hidden;
     border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    cursor: move;
+}
+
+.category-item.dragging {
+    opacity: 0.5;
 }
 
 .category-header-edit {
@@ -73,11 +79,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
 }
 
 .category-header-edit h4 {
     margin: 0;
     font-size: 18px;
+    margin-left: 40px;
 }
 
 .category-actions {
@@ -90,8 +98,53 @@
     font-size: 14px;
 }
 
+/* Drag handles */
+.drag-handle {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: grab;
+    color: white;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-handle-product {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: grab;
+    color: #718096;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.drag-handle-product:hover {
+    opacity: 1;
+}
+
+.drag-handle-product:active {
+    cursor: grabbing;
+}
+
+/* Products list */
 .products-list {
     padding: 15px;
+    min-height: 50px;
+}
+
+.products-sortable {
+    min-height: 30px;
 }
 
 .product-item-edit {
@@ -100,6 +153,22 @@
     padding: 15px;
     margin-bottom: 10px;
     border: 1px solid #e2e8f0;
+    position: relative;
+    padding-left: 40px;
+    cursor: move;
+    transition: all 0.3s ease;
+}
+
+.product-item-edit.dragging {
+    opacity: 0.5;
+}
+
+.product-item-edit:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-content {
+    width: 100%;
 }
 
 .product-header-edit {
@@ -270,6 +339,17 @@
     font-size: 14px;
 }
 
+/* Drag & Drop визуальные индикаторы */
+.category-item.drag-over {
+    border: 2px dashed #6029E5;
+    background: #f0f4ff;
+}
+
+.product-item-edit.drag-over {
+    border: 2px dashed #6029E5;
+    background: #f0f4ff;
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
     .tariffs-header {
@@ -293,6 +373,17 @@
     .category-header-edit {
         flex-direction: column;
         gap: 10px;
+    }
+    
+    .category-header-edit h4 {
+        margin-left: 0;
+        margin-top: 30px;
+    }
+    
+    .drag-handle {
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
     }
     
     .category-actions {

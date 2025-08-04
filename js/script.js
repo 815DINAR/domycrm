@@ -28,8 +28,15 @@ function initializeProductCategories() {
     
     const categories = window.currentTariff.data.categories || {};
     
+    // Сортируем категории по order
+    const sortedCategories = Object.entries(categories).sort((a, b) => {
+        const orderA = a[1].order !== undefined ? a[1].order : 999;
+        const orderB = b[1].order !== undefined ? b[1].order : 999;
+        return orderA - orderB;
+    });
+    
     // Создаем категории
-    for (const [categoryName, categoryData] of Object.entries(categories)) {
+    for (const [categoryName, categoryData] of sortedCategories) {
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'product-category';
         
@@ -42,7 +49,14 @@ function initializeProductCategories() {
         
         const products = categoryData.products || {};
         
-        for (const [productName, productData] of Object.entries(products)) {
+        // Сортируем продукты по order
+        const sortedProducts = Object.entries(products).sort((a, b) => {
+            const orderA = (a[1] && typeof a[1] === 'object' && !Array.isArray(a[1])) ? (a[1].order !== undefined ? a[1].order : 999) : 999;
+            const orderB = (b[1] && typeof b[1] === 'object' && !Array.isArray(b[1])) ? (b[1].order !== undefined ? b[1].order : 999) : 999;
+            return orderA - orderB;
+        });
+        
+        for (const [productName, productData] of sortedProducts) {
             const checkboxItem = document.createElement('div');
             checkboxItem.className = 'product-checkbox-item';
             
@@ -406,12 +420,17 @@ function calculateProductCost(productName, propertyType, currentUnits, additiona
         return null;
     }
     
-    // Проверяем наличие данных для типа недвижимости
-    let typeData = productData[propertyType];
+    // Сначала проверяем наличие фиксированной цены
+    let typeData = null;
+    let isFixedPrice = false;
     
-    // Если нет данных для конкретного типа, проверяем фиксированную цену
-    if (!typeData && productData['фиксированная цена']) {
+    // Если есть фиксированная цена, используем её независимо от типа недвижимости
+    if (productData['фиксированная цена']) {
         typeData = productData['фиксированная цена'];
+        isFixedPrice = true;
+    } else {
+        // Иначе ищем данные для конкретного типа недвижимости
+        typeData = productData[propertyType];
     }
     
     if (!typeData) {
@@ -421,7 +440,20 @@ function calculateProductCost(productName, propertyType, currentUnits, additiona
     
     let monthlyCost, details;
     
-    if (isNewDeal) {
+    // Проверяем, является ли это фиксированной ценой
+    if (isFixedPrice || (typeData.length === 1 && 
+                        typeData[0].range === 'фиксированный тариф' && 
+                        typeData[0].basePrice !== null && 
+                        typeData[0].unitPrice === null)) {
+        // Для фиксированной цены используем базовую цену
+        monthlyCost = typeData[0].basePrice;
+        details = [{
+            range: 'Фиксированная цена',
+            units: isNewDeal ? totalUnits : additionalUnits,
+            price: 'фиксированная цена',
+            cost: typeData[0].basePrice
+        }];
+    } else if (isNewDeal) {
         // Расчет для новой сделки
         const result = calculateNewDealCost(typeData, totalUnits);
         monthlyCost = result.totalCost;
@@ -433,8 +465,8 @@ function calculateProductCost(productName, propertyType, currentUnits, additiona
         details = result.details;
     }
     
-    if (monthlyCost === null) {
-        console.error(`Не удалось рассчитать стоимость`);
+    if (monthlyCost === null || monthlyCost === 0) {
+        console.error(`Не удалось рассчитать стоимость для продукта "${productName}"`);
         return null;
     }
     

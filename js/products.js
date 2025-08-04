@@ -5,6 +5,8 @@ let editingTariff = null;
 let editingCategory = null;
 let editingProduct = null;
 let currentPropertyType = 'многоквартирный дом';
+let draggedProduct = null;
+let draggedCategory = null;
 
 // Загрузка тарифов для редактирования
 async function loadTariffsForEdit() {
@@ -90,11 +92,55 @@ function displayCategories() {
     
     const categories = editingTariff.data.categories || {};
     
-    for (const [categoryName, categoryData] of Object.entries(categories)) {
+    // Сначала проверяем и назначаем order для категорий, у которых его нет
+    let needsOrderUpdate = false;
+    Object.entries(categories).forEach(([categoryName, categoryData], index) => {
+        if (categoryData.order === undefined || categoryData.order === null) {
+            categoryData.order = index * 10; // Умножаем на 10 для возможности вставки между элементами
+            needsOrderUpdate = true;
+        }
+    });
+    
+    // Если были категории без order, сохраняем
+    if (needsOrderUpdate) {
+        saveTariff();
+    }
+    
+    // Сортируем категории по order
+    const sortedCategories = Object.entries(categories).sort((a, b) => {
+        const orderA = a[1].order !== undefined ? a[1].order : 999;
+        const orderB = b[1].order !== undefined ? b[1].order : 999;
+        return orderA - orderB;
+    });
+    
+    for (const [categoryName, categoryData] of sortedCategories) {
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category-item';
+        categoryDiv.draggable = true;
+        categoryDiv.dataset.categoryName = categoryName;
+        
+        // Обработчики drag & drop для категорий
+        categoryDiv.addEventListener('dragstart', handleCategoryDragStart);
+        categoryDiv.addEventListener('dragover', handleCategoryDragOver);
+        categoryDiv.addEventListener('drop', handleCategoryDrop);
+        categoryDiv.addEventListener('dragend', handleCategoryDragEnd);
+        categoryDiv.addEventListener('dragenter', e => e.preventDefault());
+        
         categoryDiv.innerHTML = `
             <div class="category-header-edit">
+                <div class="drag-handle" title="Перетащите для изменения порядка">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="1"></circle>
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="12" cy="19" r="1"></circle>
+                        <circle cx="19" cy="5" r="1"></circle>
+                        <circle cx="19" cy="12" r="1"></circle>
+                        <circle cx="19" cy="19" r="1"></circle>
+                        <circle cx="5" cy="5" r="1"></circle>
+                        <circle cx="5" cy="12" r="1"></circle>
+                        <circle cx="5" cy="19" r="1"></circle>
+                    </svg>
+                </div>
                 <h4>${categoryName}</h4>
                 <div class="category-actions">
                     <button onclick="editCategory('${categoryName}')" class="btn-edit">Редактировать</button>
@@ -102,36 +148,239 @@ function displayCategories() {
                     <button onclick="addProduct('${categoryName}')" class="btn-primary">Добавить продукт</button>
                 </div>
             </div>
-            <div class="products-list" id="products-${categoryName.replace(/\s+/g, '-')}">
+            <div class="products-list" id="products-${categoryName.replace(/\s+/g, '-')}" data-category="${categoryName}">
                 ${renderProducts(categoryName, categoryData.products || {})}
             </div>
         `;
         container.appendChild(categoryDiv);
     }
+    
+    // Инициализируем drag & drop для продуктов после создания DOM
+    setTimeout(initializeProductsDragDrop, 100);
 }
 
 // Рендеринг продуктов категории
 function renderProducts(categoryName, products) {
-    let html = '';
+    let html = '<div class="products-sortable">';
     
-    for (const [productName, productData] of Object.entries(products)) {
+    // Проверяем и назначаем order для продуктов, у которых его нет
+    let needsOrderUpdate = false;
+    Object.entries(products).forEach(([productName, productData], index) => {
+        if (typeof productData === 'object' && !Array.isArray(productData)) {
+            if (productData.order === undefined || productData.order === null) {
+                productData.order = index * 10;
+                needsOrderUpdate = true;
+            }
+        }
+    });
+    
+    // Сортируем продукты по order
+    const sortedProducts = Object.entries(products).sort((a, b) => {
+        const orderA = (a[1] && typeof a[1] === 'object' && !Array.isArray(a[1])) ? (a[1].order !== undefined ? a[1].order : 999) : 999;
+        const orderB = (b[1] && typeof b[1] === 'object' && !Array.isArray(b[1])) ? (b[1].order !== undefined ? b[1].order : 999) : 999;
+        return orderA - orderB;
+    });
+    
+    for (const [productName, productData] of sortedProducts) {
         html += `
-            <div class="product-item-edit">
-                <div class="product-header-edit">
-                    <span class="product-name">${productName}</span>
-                    <div class="product-actions">
-                        <button onclick="editProduct('${categoryName}', '${productName}')" class="btn-edit">Редактировать</button>
-                        <button onclick="deleteProduct('${categoryName}', '${productName}')" class="btn-delete">Удалить</button>
-                    </div>
+            <div class="product-item-edit" draggable="true" data-product-name="${productName}" data-category="${categoryName}">
+                <div class="drag-handle-product" title="Перетащите для изменения порядка">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="1"></circle>
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="12" cy="19" r="1"></circle>
+                        <circle cx="19" cy="5" r="1"></circle>
+                        <circle cx="19" cy="12" r="1"></circle>
+                        <circle cx="19" cy="19" r="1"></circle>
+                        <circle cx="5" cy="5" r="1"></circle>
+                        <circle cx="5" cy="12" r="1"></circle>
+                        <circle cx="5" cy="19" r="1"></circle>
+                    </svg>
                 </div>
-                <div class="product-prices">
-                    ${renderProductPrices(productData)}
+                <div class="product-content">
+                    <div class="product-header-edit">
+                        <span class="product-name">${productName}</span>
+                        <div class="product-actions">
+                            <button onclick="editProduct('${categoryName}', '${productName}')" class="btn-edit">Редактировать</button>
+                            <button onclick="deleteProduct('${categoryName}', '${productName}')" class="btn-delete">Удалить</button>
+                        </div>
+                    </div>
+                    <div class="product-prices">
+                        ${renderProductPrices(productData)}
+                    </div>
                 </div>
             </div>
         `;
     }
     
-    return html || '<p class="empty-products">Нет продуктов в этой категории</p>';
+    html += '</div>';
+    
+    // Если нет продуктов
+    if (sortedProducts.length === 0) {
+        html = '<p class="empty-products">Нет продуктов в этой категории</p>';
+    }
+    
+    return html;
+}
+
+// После отображения категорий инициализируем drag & drop для продуктов
+function initializeProductsDragDrop() {
+    document.querySelectorAll('.product-item-edit').forEach(item => {
+        item.addEventListener('dragstart', handleProductDragStart);
+        item.addEventListener('dragover', handleProductDragOver);
+        item.addEventListener('drop', handleProductDrop);
+        item.addEventListener('dragend', handleProductDragEnd);
+        item.addEventListener('dragenter', e => e.preventDefault());
+    });
+}
+
+// Обработчики drag & drop для категорий
+function handleCategoryDragStart(e) {
+    draggedCategory = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleCategoryDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Только если перетаскиваем категорию
+    if (!draggedCategory || !draggedCategory.classList.contains('category-item')) {
+        return false;
+    }
+    
+    const container = document.getElementById('categoriesList');
+    const afterElement = getDragAfterElement(container, e.clientY, '.category-item');
+    
+    if (afterElement == null) {
+        container.appendChild(draggedCategory);
+    } else {
+        container.insertBefore(draggedCategory, afterElement);
+    }
+    
+    return false;
+}
+
+function handleCategoryDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    updateCategoryOrder();
+    
+    return false;
+}
+
+function handleCategoryDragEnd(e) {
+    document.querySelectorAll('.category-item').forEach(item => {
+        item.classList.remove('dragging');
+    });
+    draggedCategory = null;
+}
+
+// Обработчики drag & drop для продуктов
+function handleProductDragStart(e) {
+    draggedProduct = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleProductDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Только если перетаскиваем продукт
+    if (!draggedProduct || !draggedProduct.classList.contains('product-item-edit')) {
+        return false;
+    }
+    
+    const container = this.closest('.products-sortable');
+    if (!container) return false;
+    
+    const afterElement = getDragAfterElement(container, e.clientY, '.product-item-edit');
+    
+    if (afterElement == null) {
+        container.appendChild(draggedProduct);
+    } else {
+        container.insertBefore(draggedProduct, afterElement);
+    }
+    
+    return false;
+}
+
+function handleProductDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    const categoryName = this.closest('.category-item').dataset.categoryName;
+    updateProductOrder(categoryName);
+    
+    return false;
+}
+
+function handleProductDragEnd(e) {
+    document.querySelectorAll('.product-item-edit').forEach(item => {
+        item.classList.remove('dragging');
+    });
+    draggedProduct = null;
+}
+
+// Вспомогательная функция для определения позиции при перетаскивании
+function getDragAfterElement(container, y, selector) {
+    const draggableElements = [...container.querySelectorAll(`${selector}:not(.dragging)`)];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// Обновление порядка категорий
+function updateCategoryOrder() {
+    const categories = document.querySelectorAll('.category-item');
+    
+    categories.forEach((cat, index) => {
+        const categoryName = cat.dataset.categoryName;
+        if (editingTariff.data.categories[categoryName]) {
+            editingTariff.data.categories[categoryName].order = index;
+        }
+    });
+    
+    // Сохраняем изменения
+    saveTariff();
+}
+
+// Обновление порядка продуктов
+function updateProductOrder(categoryName) {
+    const container = document.querySelector(`.products-list[data-category="${categoryName}"] .products-sortable`);
+    if (!container) return;
+    
+    const products = container.querySelectorAll('.product-item-edit');
+    
+    products.forEach((prod, index) => {
+        const productName = prod.dataset.productName;
+        if (editingTariff.data.categories[categoryName] && 
+            editingTariff.data.categories[categoryName].products[productName]) {
+            editingTariff.data.categories[categoryName].products[productName].order = index;
+        }
+    });
+    
+    // Сохраняем изменения
+    saveTariff();
 }
 
 // Рендеринг цен продукта
@@ -139,6 +388,8 @@ function renderProductPrices(productData) {
     let html = '';
     
     for (const [propertyType, ranges] of Object.entries(productData)) {
+        if (propertyType === 'order') continue; // Пропускаем поле order
+        
         if (Array.isArray(ranges) && ranges.length > 0) {
             html += `
                 <div class="property-type-prices">
@@ -403,7 +654,8 @@ document.getElementById('saveCategoryBtn')?.addEventListener('click', function()
     if (editingCategory) {
         // Редактирование существующей категории
         if (editingCategory !== newName) {
-            editingTariff.data.categories[newName] = editingTariff.data.categories[editingCategory];
+            const oldData = editingTariff.data.categories[editingCategory];
+            editingTariff.data.categories[newName] = oldData;
             delete editingTariff.data.categories[editingCategory];
         }
     } else {
@@ -412,7 +664,14 @@ document.getElementById('saveCategoryBtn')?.addEventListener('click', function()
             showNotification('Категория с таким названием уже существует', 'error');
             return;
         }
-        editingTariff.data.categories[newName] = { products: {} };
+        
+        // Определяем order для новой категории
+        const maxOrder = Math.max(...Object.values(editingTariff.data.categories).map(c => c.order || 0), -1);
+        
+        editingTariff.data.categories[newName] = { 
+            products: {},
+            order: maxOrder + 10
+        };
     }
     
     document.getElementById('categoryModal').style.display = 'none';
@@ -606,9 +865,11 @@ function collectProductData() {
     // Если есть сохраненные данные для других типов, добавляем их
     if (editingProduct) {
         const existingData = editingTariff.data.categories[editingCategory].products[editingProduct];
-        for (const [type, ranges] of Object.entries(existingData)) {
-            if (type !== currentPropertyType) {
-                productData[type] = ranges;
+        for (const [type, data] of Object.entries(existingData)) {
+            if (type !== currentPropertyType && type !== 'order') {
+                productData[type] = data;
+            } else if (type === 'order') {
+                productData.order = data; // Сохраняем order
             }
         }
     }
@@ -629,8 +890,8 @@ document.getElementById('saveProductBtn')?.addEventListener('click', function() 
     
     // Проверяем, есть ли хотя бы один диапазон
     let hasData = false;
-    for (const ranges of Object.values(productData)) {
-        if (ranges && ranges.length > 0) {
+    for (const [key, value] of Object.entries(productData)) {
+        if (key !== 'order' && value && Array.isArray(value) && value.length > 0) {
             hasData = true;
             break;
         }
@@ -646,6 +907,13 @@ document.getElementById('saveProductBtn')?.addEventListener('click', function() 
         editingTariff.data.categories[editingCategory].products = {};
     }
     
+    // Если это новый продукт, назначаем ему order
+    if (!editingProduct) {
+        const products = editingTariff.data.categories[editingCategory].products;
+        const maxOrder = Math.max(...Object.values(products).map(p => (p && typeof p === 'object' && !Array.isArray(p) && p.order !== undefined) ? p.order : 0), -1);
+        productData.order = maxOrder + 10;
+    }
+    
     // Если редактируем и изменилось название
     if (editingProduct && editingProduct !== productName) {
         delete editingTariff.data.categories[editingCategory].products[editingProduct];
@@ -655,6 +923,7 @@ document.getElementById('saveProductBtn')?.addEventListener('click', function() 
     
     document.getElementById('productModal').style.display = 'none';
     displayCategories();
+    setTimeout(initializeProductsDragDrop, 100); // Инициализируем drag & drop после обновления DOM
     saveTariff();
 });
 
@@ -700,3 +969,13 @@ function showNotification(message, type = 'info') {
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
+
+// Инициализация после загрузки DOM для страницы редактирования
+document.addEventListener('DOMContentLoaded', function() {
+    // Обновляем обработчик для отображения категорий, чтобы инициализировать drag & drop
+    const originalDisplayCategories = window.displayCategories;
+    window.displayCategories = function() {
+        originalDisplayCategories.call(this);
+        setTimeout(initializeProductsDragDrop, 100);
+    };
+});

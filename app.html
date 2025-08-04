@@ -7,6 +7,7 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="image/logo.png">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/products.css">
 </head>
 <body>
     <div class="app-container">
@@ -38,6 +39,15 @@
                         </svg>
                         <span>Настройки</span>
                     </div>
+                    
+                    <!-- Раздел Продукты - только для админов -->
+                    <div class="nav-item admin-only" data-section="products" style="display: none;">
+                        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                            <line x1="7" y1="7" x2="7.01" y2="7"/>
+                        </svg>
+                        <span>Продукты</span>
+                    </div>
                 </div>
                 
                 <!-- Кнопка выхода внизу меню -->
@@ -60,7 +70,7 @@
             <div id="calculator-section" class="content-section active">
                 <div class="container">
                     <header>
-                        <h1> Калькулятор стоимости продуктов</h1>
+                        <h1>Калькулятор стоимости продуктов</h1>
                         <a href="https://cypress-lantana-0e0.notion.site/22332fd3ba2d80efa0afc3a220c28ca2?source=copy_link" class="instruction-btn">Инструкция</a>
                     </header>
 
@@ -70,6 +80,13 @@
                             <select id="calculatorType" required>
                                 <option value="increase">Увеличение помещений</option>
                                 <option value="new">Новая сделка/Пролонг</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tariffSelect">Тариф:</label>
+                            <select id="tariffSelect" required>
+                                <option value="">Загрузка тарифов...</option>
                             </select>
                         </div>
 
@@ -162,33 +179,10 @@
                             <button id="copySummary" class="btn-secondary">Копировать текст</button>
                         </div>
                     </div>
-
-                    <!-- Модальное окно для отображения данных -->
-                    <div id="dataModal" class="modal" style="display: none;">
-                        <div class="modal-content">
-                            <span class="close">&times;</span>
-                            <h3>Загруженные данные о ценах</h3>
-                            <div id="dataContent"></div>
-                            <button id="updateData" class="btn-primary">Обновить данные</button>
-                        </div>
-                    </div>
-
-                    <!-- Модальное окно для обновления данных -->
-                    <div id="updateModal" class="modal" style="display: none;">
-                        <div class="modal-content">
-                            <span class="close">&times;</span>
-                            <h3>Обновление данных</h3>
-                            <textarea id="dataInput" rows="20" cols="80" placeholder="Вставьте JSON данные здесь..."></textarea>
-                            <div class="modal-buttons">
-                                <button id="saveData" class="btn-primary">Сохранить</button>
-                                <button id="cancelUpdate" class="btn-secondary">Отмена</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Секция админ панели - скрыта по умолчанию -->
+            <!-- Секция админ панели -->
             <div id="admin-section" class="content-section" style="display: none;">
                 <div class="container">
                     <header>
@@ -241,11 +235,130 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Секция управления продуктами (тарифами) - только для админов -->
+            <div id="products-section" class="content-section" style="display: none;">
+                <div class="container">
+                    <header>
+                        <h1>Управление тарифами и продуктами</h1>
+                    </header>
+
+                    <div class="tariffs-header">
+                        <select id="tariffSelector" class="tariff-selector">
+                            <option value="">Выберите тариф для редактирования</option>
+                        </select>
+                        <div class="tariff-actions">
+                            <button id="createTariffBtn" class="btn-primary">Создать новый тариф</button>
+                            <button id="copyTariffBtn" class="btn-secondary" disabled>Копировать тариф</button>
+                            <button id="setDefaultBtn" class="btn-secondary" disabled>Сделать по умолчанию</button>
+                            <button id="deleteTariffBtn" class="btn-delete" disabled>Удалить тариф</button>
+                        </div>
+                    </div>
+
+                    <div id="tariffEditor" class="tariff-editor" style="display: none;">
+                        <div class="tariff-info">
+                            <div class="form-group">
+                                <label for="tariffName">Название тарифа:</label>
+                                <input type="text" id="tariffName" placeholder="Например: Тариф 2025">
+                            </div>
+                            <div class="form-group">
+                                <label for="tariffYear">Год:</label>
+                                <input type="number" id="tariffYear" min="2020" max="2030" placeholder="2025">
+                            </div>
+                            <button id="saveTariffInfo" class="btn-primary">Сохранить информацию о тарифе</button>
+                        </div>
+
+                        <div class="categories-section">
+                            <h3>Категории и продукты</h3>
+                            <div id="categoriesList" class="categories-list">
+                                <!-- Здесь будут отображаться категории и продукты -->
+                            </div>
+                            <button id="addCategoryBtn" class="btn-primary">Добавить категорию</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- Модальные окна для управления продуктами -->
+    <!-- Модальное окно добавления/редактирования категории -->
+    <div id="categoryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="categoryModalTitle">Добавить категорию</h3>
+            <div class="form-group">
+                <label for="categoryName">Название категории:</label>
+                <input type="text" id="categoryName" placeholder="Например: Сервисы ЖКХ">
+            </div>
+            <div class="modal-buttons">
+                <button id="saveCategoryBtn" class="btn-primary">Сохранить</button>
+                <button id="cancelCategoryBtn" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления/редактирования продукта -->
+    <div id="productModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <span class="close">&times;</span>
+            <h3 id="productModalTitle">Добавить продукт</h3>
+            <div class="form-group">
+                <label for="productName">Название продукта:</label>
+                <input type="text" id="productName" placeholder="Например: Аварийно-диспетчерская служба">
+            </div>
+            
+            <div class="property-types-tabs">
+                <button class="property-tab active" data-property="многоквартирный дом">Многоквартирный дом</button>
+                <button class="property-tab" data-property="коттеджный поселок">Коттеджный поселок</button>
+                <button class="property-tab" data-property="фиксированная цена">Фиксированная цена</button>
+            </div>
+
+            <div id="priceRangesContainer" class="price-ranges-container">
+                <!-- Здесь будут диапазоны цен -->
+            </div>
+
+            <button id="addRangeBtn" class="btn-secondary">Добавить диапазон</button>
+            
+            <div class="modal-buttons">
+                <button id="saveProductBtn" class="btn-primary">Сохранить продукт</button>
+                <button id="cancelProductBtn" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания нового тарифа -->
+    <div id="newTariffModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Создать новый тариф</h3>
+            <div class="form-group">
+                <label for="newTariffName">Название тарифа:</label>
+                <input type="text" id="newTariffName" placeholder="Например: Тариф 2026">
+            </div>
+            <div class="form-group">
+                <label for="newTariffYear">Год:</label>
+                <input type="number" id="newTariffYear" min="2020" max="2030" placeholder="2026">
+            </div>
+            <div class="form-group">
+                <label for="copyFromTariff">Копировать из тарифа (опционально):</label>
+                <select id="copyFromTariff">
+                    <option value="">Создать пустой тариф</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button id="createNewTariffBtn" class="btn-primary">Создать</button>
+                <button id="cancelNewTariffBtn" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
     </div>
 
     <!-- Скрипт проверки авторизации -->
     <script>
+        // Глобальные переменные для тарифов
+        window.currentTariff = null;
+        window.availableTariffs = [];
+        
         // Ждем загрузки DOM
         document.addEventListener('DOMContentLoaded', function() {
             // Проверка авторизации при загрузке страницы
@@ -268,11 +381,14 @@
                     
                     // Сохраняем данные пользователя
                     window.currentUser = {
-                        id: data.id || null, // Добавляем ID пользователя
+                        id: data.id || null,
                         email: data.email,
                         role: data.role,
                         name: data.name
                     };
+                    
+                    // Загружаем список тарифов
+                    loadTariffs();
                 })
                 .catch(error => {
                     console.error('Ошибка проверки авторизации:', error);
@@ -310,14 +426,77 @@
                     if (targetSection) {
                         targetSection.style.display = 'block';
                         targetSection.classList.add('active');
+                        
+                        // Если открываем раздел продуктов, загружаем тарифы для редактирования
+                        if (section === 'products' && window.currentUser?.role === 'admin') {
+                            loadTariffsForEdit();
+                        }
                     }
                 });
             });
         });
+
+        // Функция загрузки тарифов для калькулятора
+        async function loadTariffs() {
+            try {
+                const response = await fetch('/api/tariffs/list.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.availableTariffs = data.tariffs;
+                    const select = document.getElementById('tariffSelect');
+                    select.innerHTML = '';
+                    
+                    data.tariffs.forEach(tariff => {
+                        const option = document.createElement('option');
+                        option.value = tariff.id;
+                        option.textContent = `${tariff.name} (${tariff.year})`;
+                        if (tariff.is_default) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    
+                    // Загружаем данные выбранного тарифа
+                    if (select.value) {
+                        await loadTariffData(select.value);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки тарифов:', error);
+            }
+        }
+
+        // Функция загрузки данных конкретного тарифа
+        async function loadTariffData(tariffId) {
+            try {
+                const response = await fetch(`/api/tariffs/get.php?id=${tariffId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.currentTariff = data.tariff;
+                    // Обновляем категории продуктов в интерфейсе
+                    if (typeof updateProductCategories === 'function') {
+                        updateProductCategories();
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных тарифа:', error);
+            }
+        }
+
+        // Обработчик изменения тарифа
+        document.getElementById('tariffSelect')?.addEventListener('change', function() {
+            if (this.value) {
+                loadTariffData(this.value);
+            }
+        });
     </script>
 
-    <script src="js/data.js"></script>
+    <!-- Удаляем data.js так как данные теперь в БД -->
+    <!-- <script src="js/data.js"></script> -->
     <script src="js/script.js"></script>
     <script src="js/admin.js"></script>
+    <script src="js/products.js"></script>
 </body>
 </html>

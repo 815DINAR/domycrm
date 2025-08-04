@@ -607,6 +607,81 @@ function calculatePeriodCost(monthlyCost, dateFrom, dateTo) {
     return Math.round(totalCost * 100) / 100; // Округляем до копеек
 }
 
+// Функция для подсветки поля с ошибкой
+function highlightField(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.classList.add('field-error');
+        field.focus();
+        
+        // Добавляем обработчик для снятия подсветки при вводе
+        field.addEventListener('input', function() {
+            this.classList.remove('field-error');
+        }, { once: true });
+        
+        field.addEventListener('change', function() {
+            this.classList.remove('field-error');
+        }, { once: true });
+    }
+    return message;
+}
+
+// Функция для проверки и подсветки полей продуктов
+function validateProductFields(productItem, productName, globalUnitsEnabled, globalDates, globalDiscounts, calculatorType) {
+    const errors = [];
+    
+    // Проверка количества помещений
+    if (calculatorType !== 'new' && !globalUnitsEnabled) {
+        const unitsInput = productItem.querySelector('.units-input');
+        if (!unitsInput.value || parseInt(unitsInput.value) < 1) {
+            unitsInput.classList.add('field-error');
+            errors.push(`количество помещений для "${productName}"`);
+            
+            unitsInput.addEventListener('input', function() {
+                this.classList.remove('field-error');
+            }, { once: true });
+        }
+    }
+    
+    // Проверка дат
+    if (!globalDates) {
+        const dateFrom = productItem.querySelector('.product-date-from');
+        const dateTo = productItem.querySelector('.product-date-to');
+        
+        if (!dateFrom.value) {
+            dateFrom.classList.add('field-error');
+            errors.push(`дата начала для "${productName}"`);
+            
+            dateFrom.addEventListener('input', function() {
+                this.classList.remove('field-error');
+            }, { once: true });
+        }
+        
+        if (!dateTo.value) {
+            dateTo.classList.add('field-error');
+            errors.push(`дата окончания для "${productName}"`);
+            
+            dateTo.addEventListener('input', function() {
+                this.classList.remove('field-error');
+            }, { once: true });
+        }
+        
+        if (dateFrom.value && dateTo.value && new Date(dateFrom.value) >= new Date(dateTo.value)) {
+            dateFrom.classList.add('field-error');
+            dateTo.classList.add('field-error');
+            errors.push(`корректные даты для "${productName}" (дата начала должна быть раньше даты окончания)`);
+            
+            [dateFrom, dateTo].forEach(field => {
+                field.addEventListener('input', function() {
+                    this.classList.remove('field-error');
+                }, { once: true });
+            });
+        }
+    }
+    
+    return errors;
+}
+
 function calculateCosts() {
     const calculatorType = document.getElementById('calculatorType').value;
     const propertyType = document.getElementById('propertyType').value;
@@ -614,9 +689,17 @@ function calculateCosts() {
     const globalDiscounts = document.getElementById('globalDiscounts').checked;
     const globalUnitsEnabled = document.getElementById('globalUnitsEnabled').checked;
     
+    // Массив для сбора всех ошибок
+    const errors = [];
+    
+    // Проверка типа недвижимости
+    if (!propertyType) {
+        errors.push(highlightField('propertyType', 'тип недвижимости'));
+    }
+    
     // Глобальные значения дат и скидок
-    const globalDateFrom = globalDates ? new Date(document.getElementById('dateFrom').value) : null;
-    const globalDateTo = globalDates ? new Date(document.getElementById('dateTo').value) : null;
+    const globalDateFrom = globalDates ? document.getElementById('dateFrom').value : null;
+    const globalDateTo = globalDates ? document.getElementById('dateTo').value : null;
     const globalDiscount = globalDiscounts ? parseFloat(document.getElementById('globalDiscount').value) || 0 : 0;
     
     let currentUnits, globalUnits, totalUnits;
@@ -625,32 +708,61 @@ function calculateCosts() {
         // Новая сделка
         totalUnits = parseInt(document.getElementById('totalUnits').value);
         
-        if (!propertyType || !totalUnits) {
-            alert('Пожалуйста, заполните все обязательные поля');
-            return;
+        if (!totalUnits || totalUnits < 1) {
+            errors.push(highlightField('totalUnits', 'количество помещений'));
         }
     } else {
         // Увеличение помещений
         currentUnits = parseInt(document.getElementById('currentUnits').value);
-        globalUnits = globalUnitsEnabled ? parseInt(document.getElementById('globalUnits').value) : null;
         
-        if (!propertyType || isNaN(currentUnits)) {
-            alert('Пожалуйста, заполните все обязательные поля');
-            return;
+        if (isNaN(currentUnits) || currentUnits < 0) {
+            errors.push(highlightField('currentUnits', 'текущее количество помещений'));
         }
         
-        if (globalUnitsEnabled && !globalUnits) {
-            alert('Пожалуйста, укажите количество помещений для добавления');
-            return;
+        if (globalUnitsEnabled) {
+            globalUnits = parseInt(document.getElementById('globalUnits').value);
+            if (!globalUnits || globalUnits < 1) {
+                errors.push(highlightField('globalUnits', 'количество добавляемых помещений'));
+            }
         }
     }
     
-    if (globalDates && (!globalDateFrom || !globalDateTo || globalDateFrom >= globalDateTo)) {
-        alert('Проверьте корректность глобальных дат');
+    // Проверка глобальных дат
+    if (globalDates) {
+        if (!globalDateFrom) {
+            errors.push(highlightField('dateFrom', 'дата начала'));
+        }
+        if (!globalDateTo) {
+            errors.push(highlightField('dateTo', 'дата окончания'));
+        }
+        if (globalDateFrom && globalDateTo && new Date(globalDateFrom) >= new Date(globalDateTo)) {
+            errors.push(highlightField('dateFrom', 'корректные даты'));
+            highlightField('dateTo', '');
+        }
+    }
+    
+    // Проверка наличия продуктов
+    const productItems = document.querySelectorAll('.product-item');
+    if (productItems.length === 0) {
+        errors.push('хотя бы один продукт');
+    }
+    
+    // Проверка полей продуктов
+    productItems.forEach(item => {
+        const productName = item.getAttribute('data-product-name');
+        if (productName) {
+            const productErrors = validateProductFields(item, productName, globalUnitsEnabled, globalDates, globalDiscounts, calculatorType);
+            errors.push(...productErrors);
+        }
+    });
+    
+    // Если есть ошибки, показываем их
+    if (errors.length > 0) {
+        let errorMessage = 'Пожалуйста, заполните следующие поля:\n• ' + errors.join('\n• ');
+        alert(errorMessage);
         return;
     }
     
-    const productItems = document.querySelectorAll('.product-item');
     const results = [];
     let totalCost = 0;
     
@@ -671,26 +783,17 @@ function calculateCosts() {
                 units = globalUnits;
             } else {
                 units = parseInt(item.querySelector('.units-input').value);
-                if (!units) {
-                    alert(`Пожалуйста, укажите количество помещений для продукта "${productName}"`);
-                    return;
-                }
             }
         }
         
         // Определяем даты для продукта
         let dateFrom, dateTo;
         if (globalDates) {
-            dateFrom = globalDateFrom;
-            dateTo = globalDateTo;
+            dateFrom = new Date(globalDateFrom);
+            dateTo = new Date(globalDateTo);
         } else {
             dateFrom = new Date(item.querySelector('.product-date-from').value);
             dateTo = new Date(item.querySelector('.product-date-to').value);
-            
-            if (!dateFrom || !dateTo || dateFrom >= dateTo) {
-                alert(`Проверьте корректность дат для продукта "${productName}"`);
-                return;
-            }
         }
         
         // Определяем скидку для продукта
@@ -1061,6 +1164,60 @@ function copySummaryText() {
     }
 }
 
+// Функция очистки всех полей
+function clearAllFields() {
+    if (!confirm('Вы уверены, что хотите очистить все поля и начать заново?')) {
+        return;
+    }
+    
+    // Сбрасываем выбор калькулятора
+    document.getElementById('calculatorType').value = 'increase';
+    toggleCalculatorType();
+    
+    // Очищаем основные поля
+    document.getElementById('propertyType').value = '';
+    document.getElementById('currentUnits').value = '';
+    document.getElementById('globalUnits').value = '';
+    document.getElementById('totalUnits').value = '';
+    document.getElementById('globalDiscount').value = '';
+    
+    // Устанавливаем даты по умолчанию
+    setDefaultDates();
+    
+    // Сбрасываем чекбоксы в исходное состояние
+    document.getElementById('globalUnitsEnabled').checked = true;
+    document.getElementById('globalDates').checked = true;
+    document.getElementById('globalDiscounts').checked = true;
+    
+    // Очищаем список продуктов
+    document.getElementById('productsList').innerHTML = '';
+    productCounter = 0;
+    
+    // Снимаем отметки со всех чекбоксов продуктов
+    document.querySelectorAll('.product-checkbox-item input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Скрываем секцию результатов
+    document.getElementById('results').style.display = 'none';
+    
+    // Очищаем итоговый текст
+    document.getElementById('summaryText').value = '';
+    
+    // Убираем все подсветки ошибок
+    document.querySelectorAll('.field-error').forEach(field => {
+        field.classList.remove('field-error');
+    });
+    
+    // Прокручиваем страницу наверх
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Применяем изменения чекбоксов
+    toggleGlobalDates();
+    toggleGlobalDiscounts();
+    toggleGlobalUnits();
+}
+
 function initializeEventListeners() {
     // Кнопка добавления выбранных продуктов
     document.getElementById('addSelectedProducts').addEventListener('click', addSelectedProducts);
@@ -1070,6 +1227,9 @@ function initializeEventListeners() {
     
     // Кнопка копирования итогового текста
     document.getElementById('copySummary').addEventListener('click', copySummaryText);
+    
+    // Кнопка очистки всех полей
+    document.getElementById('clearAll')?.addEventListener('click', clearAllFields);
     
     // Чекбоксы для глобальных настроек
     document.getElementById('globalDates').addEventListener('change', toggleGlobalDates);

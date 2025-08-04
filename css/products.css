@@ -1,0 +1,320 @@
+/* Стили для раздела управления тарифами */
+.tariffs-header {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 30px;
+    background: #F8F9FB;
+    padding: 20px;
+    border-radius: 16px;
+}
+
+.tariff-selector {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+}
+
+.tariff-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.tariff-editor {
+    background: #F8F9FB;
+    padding: 30px;
+    border-radius: 16px;
+    margin-top: 20px;
+}
+
+.tariff-info {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.tariff-info .form-group {
+    display: inline-block;
+    margin-right: 20px;
+    margin-bottom: 15px;
+}
+
+.tariff-info input {
+    width: 250px;
+}
+
+/* Категории и продукты */
+.categories-section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.categories-list {
+    margin: 20px 0;
+}
+
+.category-item {
+    background: #f7fafc;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.category-header-edit {
+    background: #6029E5;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-header-edit h4 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.category-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.category-actions button {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.products-list {
+    padding: 15px;
+}
+
+.product-item-edit {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.product-header-edit {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.product-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #2d3748;
+}
+
+.product-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.product-prices {
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.property-type-prices {
+    margin-bottom: 8px;
+}
+
+.price-ranges-display {
+    margin-top: 5px;
+    padding-left: 20px;
+}
+
+.price-range {
+    display: inline-block;
+    margin-right: 10px;
+    padding: 2px 6px;
+    background: #edf2f7;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.empty-products {
+    text-align: center;
+    color: #a0aec0;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Кнопки */
+.btn-edit {
+    background: #4299e1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-edit:hover {
+    background: #3182ce;
+}
+
+.btn-delete {
+    background: #f56565;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: #e53e3e;
+}
+
+.btn-delete-small {
+    background: #f56565;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Модальные окна для продуктов */
+.modal-large {
+    max-width: 900px;
+    width: 90%;
+}
+
+.property-types-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.property-tab {
+    background: transparent;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #718096;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.property-tab:hover {
+    color: #2d3748;
+}
+
+.property-tab.active {
+    color: #6029E5;
+    border-bottom-color: #6029E5;
+    font-weight: 600;
+}
+
+.price-ranges-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f7fafc;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.price-range-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #e2e8f0;
+}
+
+.range-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.range-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.range-inputs .form-group {
+    margin: 0;
+}
+
+.range-inputs input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .tariffs-header {
+        flex-direction: column;
+    }
+    
+    .tariff-selector {
+        width: 100%;
+    }
+    
+    .tariff-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    
+    .tariff-actions button {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .category-header-edit {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .category-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .product-header-edit {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .product-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .property-types-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .range-inputs {
+        grid-template-columns: 1fr;
+    }
+}

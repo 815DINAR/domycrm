@@ -220,6 +220,22 @@
                             <label for="cc-discount">Общая скидка (%)</label>
                             <input type="number" id="cc-discount" min="0" max="100" value="" placeholder="0-100">
                         </div>
+                        <div class="form-group">
+                            <label for="cc-dateFrom">Дата начала</label>
+                            <input type="date" id="cc-dateFrom" class="date-input-manual" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cc-dateTo">Дата окончания</label>
+                            <input type="date" id="cc-dateTo" class="date-input-manual" required>
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Быстрый выбор периода:</label>
+                            <div class="cc-period-buttons" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button type="button" class="cc-period-btn" data-months="3">3 месяца</button>
+                                <button type="button" class="cc-period-btn" data-months="6">6 месяцев</button>
+                                <button type="button" class="cc-period-btn" data-months="12">12 месяцев</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="cc-tariff-plans">
@@ -292,6 +308,14 @@
                                 <span>Тариф на 1 м²:</span>
                                 <span id="cc-perSqm">0 ₽ / 0 ₽</span>
                             </div>
+                        </div>
+
+                        <!-- Новый блок с итоговой суммой за период -->
+                        <div class="cc-period-total" style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #6029E5 0%, #764ba2 100%); border-radius: 16px; text-align: center; color: white;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 18px; opacity: 0.9;">Итоговая сумма за период</h3>
+                            <div id="cc-periodDates" style="font-size: 14px; opacity: 0.8; margin-bottom: 15px;">-</div>
+                            <div id="cc-periodTotal" style="font-size: 32px; font-weight: 700;">0 ₽</div>
+                            <div style="font-size: 14px; opacity: 0.8; margin-top: 5px;">с НДС</div>
                         </div>
                     </div>
 

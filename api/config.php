@@ -6,6 +6,15 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
     die('Direct access denied');
 }
 
+// Форсируем настройки cookie сессии ДО запуска любой сессии
+session_set_cookie_params([
+    'lifetime' => 2592000, // 30 дней
+    'path' => '/',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
 // Параметры подключения к БД
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u3000935_default');
@@ -48,14 +57,24 @@ function getDbConnection() {
 // Функция для безопасного старта сессии
 function startSecureSession() {
     if (session_status() == PHP_SESSION_NONE) {
-        // Настройки безопасности сессии
+        // Убедимся, что директория существует
+        $sessPath = '/tmp/domy_sessions';
+        if (!is_dir($sessPath)) {
+            mkdir($sessPath, 0700, true);
+        }
+        
+        // Настройки сессии
+        ini_set('session.save_path', $sessPath);
+        ini_set('session.gc_maxlifetime', 2592000);
+        ini_set('session.cookie_lifetime', 2592000);
         ini_set('session.cookie_httponly', 1);
         ini_set('session.use_only_cookies', 1);
-        ini_set('session.cookie_secure', 1); // Только HTTPS
+        ini_set('session.cookie_secure', 1);
         
+        // Запускаем сессию
         session_start();
         
-        // Регенерируем ID сессии для безопасности
+        // Если это новая сессия, устанавливаем время создания
         if (!isset($_SESSION['created'])) {
             $_SESSION['created'] = time();
         } else if (time() - $_SESSION['created'] > 3600) {

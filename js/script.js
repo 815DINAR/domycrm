@@ -147,41 +147,44 @@ function toggleGlobalDiscounts() {
 function toggleGlobalUnits() {
     const globalUnits = document.getElementById('globalUnitsEnabled').checked;
     const productUnitsInputs = document.querySelectorAll('.units-input');
-    const globalUnitsInput = document.getElementById('globalUnits');
+    const calculatorType = document.getElementById('calculatorType').value;
     
     // Управляем видимостью полей количества помещений у продуктов
     productUnitsInputs.forEach(input => {
         input.style.display = globalUnits ? 'none' : 'block';
     });
     
-    // Управляем доступностью глобального поля количества помещений
-    globalUnitsInput.disabled = !globalUnits;
+    // Управляем доступностью глобального поля количества помещений в зависимости от типа калькулятора
+    if (calculatorType === 'increase') {
+        const globalUnitsInput = document.getElementById('globalUnits');
+        globalUnitsInput.disabled = !globalUnits;
+    } else {
+        const totalUnitsInput = document.getElementById('totalUnits');
+        totalUnitsInput.disabled = !globalUnits;
+    }
 }
 
 function toggleCalculatorType() {
     const calculatorType = document.getElementById('calculatorType').value;
     const increaseFields = document.querySelectorAll('.increase-fields');
     const newDealFields = document.querySelectorAll('.new-deal-fields');
-    const globalUnitsCheckbox = document.getElementById('globalUnitsEnabled').parentElement.parentElement;
+    const globalUnitsCheckbox = document.getElementById('globalUnitsCheckbox');
     
     if (calculatorType === 'new') {
         // Скрываем поля для увеличения
         increaseFields.forEach(field => field.style.display = 'none');
         // Показываем поля для новой сделки
         newDealFields.forEach(field => field.style.display = 'block');
-        // Скрываем чекбокс глобальных помещений для новой сделки
-        globalUnitsCheckbox.style.display = 'none';
+        // Показываем чекбокс глобальных помещений для новой сделки
+        globalUnitsCheckbox.style.display = 'block';
         // Снимаем required с полей увеличения
         document.getElementById('currentUnits').removeAttribute('required');
         document.getElementById('globalUnits').removeAttribute('required');
         // Добавляем required к полю новой сделки
         document.getElementById('totalUnits').setAttribute('required', 'required');
         
-        // Скрываем поля количества помещений у продуктов
-        document.querySelectorAll('.units-input').forEach(input => {
-            input.style.display = 'none';
-            input.removeAttribute('required');
-        });
+        // Применяем логику глобальных помещений
+        toggleGlobalUnits();
     } else {
         // Показываем поля для увеличения
         increaseFields.forEach(field => field.style.display = 'block');
@@ -216,9 +219,12 @@ function addProductItem(productName = null) {
     
     const productNameDisplay = productName ? `<h4 style="margin: 0 0 10px 0; color: #2d3748;">${productName}</h4>` : '';
     
+    // Показываем поле количества помещений только если глобальные помещения отключены
+    const showUnitsInput = !globalUnits;
+    
     productItem.innerHTML = `
         ${productNameDisplay}
-        <input type="number" class="units-input" placeholder="Количество помещений" min="1" required style="display: ${globalUnits || calculatorType === 'new' ? 'none' : 'block'};">
+        <input type="number" class="units-input" placeholder="Количество помещений" min="1" required style="display: ${showUnitsInput ? 'block' : 'none'};">
         <button type="button" class="remove-product" onclick="removeProduct(${productCounter})">Удалить</button>
         
         <div class="product-dates" style="display: ${globalDates ? 'none' : 'grid'}">
@@ -630,8 +636,8 @@ function highlightField(fieldId, message) {
 function validateProductFields(productItem, productName, globalUnitsEnabled, globalDates, globalDiscounts, calculatorType) {
     const errors = [];
     
-    // Проверка количества помещений
-    if (calculatorType !== 'new' && !globalUnitsEnabled) {
+    // Проверка количества помещений (только если глобальные помещения отключены)
+    if (!globalUnitsEnabled) {
         const unitsInput = productItem.querySelector('.units-input');
         if (!unitsInput.value || parseInt(unitsInput.value) < 1) {
             unitsInput.classList.add('field-error');
@@ -706,11 +712,15 @@ function calculateCosts() {
     
     if (calculatorType === 'new') {
         // Новая сделка
-        totalUnits = parseInt(document.getElementById('totalUnits').value);
-        
-        if (!totalUnits || totalUnits < 1) {
-            errors.push(highlightField('totalUnits', 'количество помещений'));
+        if (globalUnitsEnabled) {
+            // Если включены глобальные помещения, используем общее поле
+            totalUnits = parseInt(document.getElementById('totalUnits').value);
+            
+            if (!totalUnits || totalUnits < 1) {
+                errors.push(highlightField('totalUnits', 'количество помещений'));
+            }
         }
+        // Если глобальные помещения отключены, проверка будет в validateProductFields
     } else {
         // Увеличение помещений
         currentUnits = parseInt(document.getElementById('currentUnits').value);
@@ -775,8 +785,14 @@ function calculateCosts() {
         
         let units;
         if (calculatorType === 'new') {
-            // Для новой сделки всегда используем totalUnits
-            units = totalUnits;
+            // Для новой сделки
+            if (globalUnitsEnabled) {
+                // Используем глобальное значение
+                units = totalUnits;
+            } else {
+                // Используем индивидуальное значение для каждого продукта
+                units = parseInt(item.querySelector('.units-input').value);
+            }
         } else {
             // Для увеличения помещений
             if (globalUnitsEnabled) {
@@ -818,7 +834,7 @@ function calculateCosts() {
             
             results.push({
                 productName,
-                additionalUnits: calculatorType === 'new' ? units : units,
+                additionalUnits: units,
                 cost: finalCost,
                 originalCost: costResult.totalCost,
                 discount: discount,
@@ -931,7 +947,7 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
     summaryText += `Расчет по тарифу: ${selectedTariff}\n\n`;
     
     // Тип сделки
-    summaryText += `Тип сделки: ${calculatorType === 'new' ? 'Новая сделка' : 'Увеличение помещений'}\n\n`;
+    summaryText += `Тип сделки: ${calculatorType === 'new' ? 'Новая сделка/Пролонг' : 'Увеличение помещений'}\n\n`;
     
     // Период
     summaryText += 'Период: ';
@@ -994,8 +1010,15 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
     
     // Количество помещений
     if (calculatorType === 'new') {
-        const totalUnits = parseInt(document.getElementById('totalUnits').value);
-        summaryText += `Количество помещений (лицевых счетов): ${totalUnits}\n`;
+        if (globalUnitsEnabled) {
+            const totalUnits = parseInt(document.getElementById('totalUnits').value);
+            summaryText += `Количество помещений (лицевых счетов): ${totalUnits}\n`;
+        } else {
+            summaryText += `Количество помещений (лицевых счетов):\n`;
+            results.forEach(result => {
+                summaryText += `  ${result.productName}: ${result.additionalUnits}\n`;
+            });
+        }
     } else {
         const currentUnits = parseInt(document.getElementById('currentUnits').value);
         summaryText += `Текущее количество помещений у партнера: ${currentUnits}\n`;
@@ -1057,7 +1080,7 @@ function showCalculationDetails(index) {
         
         if (details.isNewDeal) {
             detailsHTML += `
-                <div>• Тип сделки: Новая сделка</div>
+                <div>• Тип сделки: Новая сделка/Пролонг</div>
                 <div>• Количество помещений (лицевых счетов): ${details.totalUnits}</div>
             `;
         } else {

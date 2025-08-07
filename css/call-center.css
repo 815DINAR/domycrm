@@ -457,4 +457,47 @@
     .cc-result-value {
         font-size: 24px;
     }
+/* Добавьте эти стили в конец файла call-center.css */
+
+/* Кнопки быстрого выбора периода */
+.cc-period-btn {
+    background: white;
+    border: 2px solid #e2e8f0;
+    color: #2d3748;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.cc-period-btn:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+}
+
+.cc-period-btn.active {
+    background: #6029E5;
+    color: white;
+    border-color: #6029E5;
+}
+
+.cc-period-btn:active {
+    transform: translateY(0);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .cc-period-buttons {
+        justify-content: center;
+    }
+    
+    .cc-period-btn {
+        flex: 1;
+        min-width: auto;
+    }
+}
 }

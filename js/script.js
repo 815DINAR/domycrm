@@ -96,10 +96,12 @@ function addSelectedProducts() {
 
 function setDefaultDates() {
     const today = new Date();
-    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    const nextYear = new Date(today);
+    nextYear.setFullYear(today.getFullYear() + 1);
+    nextYear.setDate(nextYear.getDate() - 1); // Вычитаем день для ровного года
     
     document.getElementById('dateFrom').value = today.toISOString().split('T')[0];
-    document.getElementById('dateTo').value = nextMonth.toISOString().split('T')[0];
+    document.getElementById('dateTo').value = nextYear.toISOString().split('T')[0];
 }
 
 function toggleGlobalDates() {
@@ -404,6 +406,49 @@ function calculateNewDealCost(typeData, totalUnits) {
     return { totalCost, details };
 }
 
+// Исправленная функция расчета месяцев и дней
+function calculateMonthsAndDays(dateFrom, dateTo) {
+    const startDate = new Date(typeof dateFrom === 'string' ? dateFrom : dateFrom);
+    const endDate = new Date(typeof dateTo === 'string' ? dateTo : dateTo);
+    
+    // Добавляем 1 день к конечной дате для включительного подсчета
+    const endInclusive = new Date(endDate);
+    endInclusive.setDate(endInclusive.getDate() + 1);
+    
+    // Вычисляем полные месяцы
+    let months = (endInclusive.getFullYear() - startDate.getFullYear()) * 12;
+    months += endInclusive.getMonth() - startDate.getMonth();
+    
+    // Вычисляем оставшиеся дни
+    let tempDate = new Date(startDate);
+    tempDate.setMonth(tempDate.getMonth() + months);
+    
+    let days = 0;
+    if (tempDate < endInclusive) {
+        days = Math.floor((endInclusive - tempDate) / (1000 * 60 * 60 * 24));
+    } else if (tempDate > endInclusive) {
+        // Если перескочили, уменьшаем месяцы и пересчитываем дни
+        months--;
+        tempDate = new Date(startDate);
+        tempDate.setMonth(tempDate.getMonth() + months);
+        days = Math.floor((endInclusive - tempDate) / (1000 * 60 * 60 * 24));
+    }
+    
+    // Если период составляет ровно целые месяцы, дни обнуляем
+    if (days === 0 || (days === 1 && endDate.getDate() === new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate())) {
+        // Проверяем, что это действительно полные месяцы
+        const testDate = new Date(startDate);
+        testDate.setMonth(testDate.getMonth() + months);
+        testDate.setDate(testDate.getDate() - 1);
+        
+        if (testDate.getTime() === endDate.getTime()) {
+            days = 0;
+        }
+    }
+    
+    return { months, days };
+}
+
 function calculateProductCost(productName, propertyType, currentUnits, additionalUnits, dateFrom, dateTo, isNewDeal = false, totalUnits = null) {
     if (!window.currentTariff || !window.currentTariff.data) {
         console.error('Тариф не загружен');
@@ -491,15 +536,47 @@ function calculateProductCost(productName, propertyType, currentUnits, additiona
     };
 }
 
+// Исправленная функция детального расчета по периоду
 function calculatePeriodCostDetailed(monthlyCost, dateFrom, dateTo) {
+    // Проверяем, является ли период ровно целыми месяцами
+    const period = calculateMonthsAndDays(dateFrom, dateTo);
+    
+    // Если период составляет ровно целые месяцы (без дополнительных дней)
+    if (period.days === 0) {
+        const totalCost = monthlyCost * period.months;
+        const details = [];
+        
+        // Генерируем детали для каждого месяца
+        const startDate = new Date(dateFrom);
+        let currentDate = new Date(startDate);
+        
+        for (let i = 0; i < period.months; i++) {
+            const monthStart = new Date(currentDate);
+            const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            
+            details.push({
+                period: `${monthStart.toLocaleDateString('ru-RU')} - ${monthEnd.toLocaleDateString('ru-RU')} (полный месяц)`,
+                cost: monthlyCost,
+                isFullMonth: true
+            });
+            
+            currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+        }
+        
+        return {
+            totalCost: Math.round(totalCost * 100) / 100,
+            details: details
+        };
+    }
+    
+    // Если период не составляет ровно целые месяцы, используем старую логику
     const startDate = new Date(dateFrom);
     const endDate = new Date(dateTo);
     let totalCost = 0;
     let details = [];
-    
     let currentDate = new Date(startDate);
     
-    while (currentDate < endDate) {
+    while (currentDate <= endDate) {
         const monthStart = new Date(currentDate);
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         
@@ -561,14 +638,24 @@ function calculatePeriodCostDetailed(monthlyCost, dateFrom, dateTo) {
     };
 }
 
+// Исправленная функция расчета по периоду
 function calculatePeriodCost(monthlyCost, dateFrom, dateTo) {
+    // Проверяем, является ли период ровно целыми месяцами
+    const period = calculateMonthsAndDays(dateFrom, dateTo);
+    
+    // Если период составляет ровно целые месяцы (без дополнительных дней)
+    if (period.days === 0) {
+        return Math.round(monthlyCost * period.months * 100) / 100;
+    }
+    
+    // Если период не составляет ровно целые месяцы, используем старую логику
     const startDate = new Date(dateFrom);
     const endDate = new Date(dateTo);
     let totalCost = 0;
     
     let currentDate = new Date(startDate);
     
-    while (currentDate < endDate) {
+    while (currentDate <= endDate) {
         const monthStart = new Date(currentDate);
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         
@@ -944,69 +1031,32 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
     let summaryText = '';
     
     // Добавляем информацию о тарифе
-    summaryText += `Расчет по тарифу: ${selectedTariff}\n\n`;
+    summaryText += `Расчет по тарифу: ${selectedTariff}\n`;
     
     // Тип сделки
-    summaryText += `Тип сделки: ${calculatorType === 'new' ? 'Новая сделка/Пролонг' : 'Увеличение помещений'}\n\n`;
+    summaryText += `Тип сделки: ${calculatorType === 'new' ? 'Новая сделка/Пролонг' : 'Увеличение помещений'}\n`;
     
-    // Период
-    summaryText += 'Период: ';
+    // Период с правильным расчетом
     if (globalDates) {
-        const displayDateFrom = typeof dateFrom === 'string' ? dateFrom : dateFrom.toLocaleDateString('ru-RU');
-        const displayDateTo = typeof dateTo === 'string' ? dateTo : dateTo.toLocaleDateString('ru-RU');
+        const displayDateFrom = typeof dateFrom === 'string' ? dateFrom : document.getElementById('dateFrom').value;
+        const displayDateTo = typeof dateTo === 'string' ? dateTo : document.getElementById('dateTo').value;
         
-        // Рассчитываем количество месяцев и дней правильно
-        const startDate = new Date(typeof dateFrom === 'string' ? dateFrom.split('.').reverse().join('-') : dateFrom);
-        const endDate = new Date(typeof dateTo === 'string' ? dateTo.split('.').reverse().join('-') : dateTo);
+        const period = calculateMonthsAndDays(displayDateFrom, displayDateTo);
+        const periodText = period.days > 0 ? 
+            `${period.months} месяцев ${period.days} дней` : 
+            `${period.months} месяцев`;
         
-        // Вычисляем полные месяцы
-        let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
-        months += endDate.getMonth() - startDate.getMonth();
-        
-        // Корректируем, если день конца меньше дня начала
-        let days = endDate.getDate() - startDate.getDate();
-        if (days < 0) {
-            months--;
-            // Получаем количество дней в предыдущем месяце
-            const prevMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 0);
-            days = prevMonth.getDate() - startDate.getDate() + endDate.getDate() + 1;
-        } else {
-            days++; // Включаем последний день
-        }
-        
-        summaryText += `с ${displayDateFrom} по ${displayDateTo} на ${months} месяцев ${days} дней\n\n`;
+        summaryText += `Период: с ${displayDateFrom} по ${displayDateTo} на ${periodText}\n`;
     } else {
-        summaryText += '\n';
-        results.forEach(result => {
-            const startDate = new Date(result.dateFrom.split('.').reverse().join('-'));
-            const endDate = new Date(result.dateTo.split('.').reverse().join('-'));
-            
-            // Вычисляем полные месяцы
-            let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
-            months += endDate.getMonth() - startDate.getMonth();
-            
-            // Корректируем, если день конца меньше дня начала
-            let days = endDate.getDate() - startDate.getDate();
-            if (days < 0) {
-                months--;
-                // Получаем количество дней в предыдущем месяце
-                const prevMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 0);
-                days = prevMonth.getDate() - startDate.getDate() + endDate.getDate() + 1;
-            } else {
-                days++; // Включаем последний день
-            }
-            
-            summaryText += `${result.productName}: с ${result.dateFrom} по ${result.dateTo} на ${months} месяцев ${days} дней\n`;
-        });
-        summaryText += '\n';
+        summaryText += `Период: индивидуально для каждого продукта\n`;
     }
     
     // Тип недвижимости
-    summaryText += `Тип: ${propertyType}\n\n`;
+    summaryText += `Тип: ${propertyType}\n`;
     
     // Продукты
     const productNames = results.map(result => result.productName).join(', ');
-    summaryText += `Продукты: ${productNames}\n\n`;
+    summaryText += `Продукты: ${productNames}\n`;
     
     // Количество помещений
     if (calculatorType === 'new') {
@@ -1014,10 +1064,7 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
             const totalUnits = parseInt(document.getElementById('totalUnits').value);
             summaryText += `Количество помещений (лицевых счетов): ${totalUnits}\n`;
         } else {
-            summaryText += `Количество помещений (лицевых счетов):\n`;
-            results.forEach(result => {
-                summaryText += `  ${result.productName}: ${result.additionalUnits}\n`;
-            });
+            summaryText += `Количество помещений (лицевых счетов): индивидуально\n`;
         }
     } else {
         const currentUnits = parseInt(document.getElementById('currentUnits').value);
@@ -1027,10 +1074,7 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
             const globalUnits = parseInt(document.getElementById('globalUnits').value);
             summaryText += `Количество добавляемых помещений: ${globalUnits}\n`;
         } else {
-            summaryText += `Количество добавляемых помещений:\n`;
-            results.forEach(result => {
-                summaryText += `  ${result.productName}: ${result.additionalUnits}\n`;
-            });
+            summaryText += `Количество добавляемых помещений: индивидуально\n`;
         }
     }
     
@@ -1039,21 +1083,12 @@ function generateSummaryText(results, totalCost, dateFrom, dateTo) {
     if (hasDiscount) {
         if (globalDiscounts) {
             const globalDiscount = parseFloat(document.getElementById('globalDiscount').value) || 0;
-            summaryText += `Скидка: да, ${globalDiscount}%\n`;
+            summaryText += `Скидка: ${globalDiscount}%\n`;
         } else {
-            summaryText += `Скидка: да, индивидуально:\n`;
-            results.forEach(result => {
-                if (result.discount > 0) {
-                    summaryText += `  ${result.productName}: ${result.discount}%\n`;
-                }
-            });
+            summaryText += `Скидка: индивидуально\n`;
         }
-        
-        const totalOriginalCost = results.reduce((sum, result) => sum + result.originalCost, 0);
-        const totalSavings = totalOriginalCost - totalCost;
-        summaryText += `Общая экономия: ${totalSavings.toLocaleString('ru-RU', {minimumFractionDigits: 2})} руб.\n\n`;
     } else {
-        summaryText += `Скидка: нет\n\n`;
+        summaryText += `Скидка: нет\n`;
     }
     
     // Итоговая сумма

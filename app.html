@@ -191,7 +191,12 @@
                         <div class="summary-section">
                             <h4>Итоговый текст для треда в mm</h4>
                             <textarea id="summaryText" class="summary-textarea" readonly></textarea>
-                            <button id="copySummary" class="btn-secondary">Копировать текст</button>
+                            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                                <button id="copySummary" class="btn-secondary">Копировать текст</button>
+                                <button id="generateKP" class="btn-primary" style="background: #4CAF50;">
+                                    📄 Сгенерировать КП
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -428,6 +433,17 @@
         </main>
     </div>
 
+    <!-- Модальное окно для результата генерации КП -->
+    <div id="kpModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close">&times;</span>
+            <h3 style="color: #4CAF50; margin-bottom: 20px;">✅ Коммерческое предложение готово!</h3>
+            <div id="kpModalContent" style="display: flex; flex-direction: column; gap: 15px;">
+                <!-- Контент будет добавлен через JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <!-- Модальные окна для управления продуктами -->
     <!-- Модальное окно добавления/редактирования категории -->
     <div id="categoryModal" class="modal" style="display: none;">
@@ -651,5 +667,6 @@
     <script src="js/admin.js"></script>
     <script src="js/products.js"></script>
     <script src="js/call-center.js"></script>
+    <script src="js/kp-generator.js"></script>
 </body>
 </html>

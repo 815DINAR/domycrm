@@ -451,6 +451,84 @@ input:disabled {
     border-radius: 10px;
     border: 2px solid #e2e8f0;
 }
+/* Стили для кнопки генерации КП */
+#generateKP {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#generateKP:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+    background: linear-gradient(135deg, #45a049 0%, #4CAF50 100%);
+}
+
+#generateKP:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Стили для модального окна КП */
+#kpModal .modal-content {
+    max-width: 500px;
+    padding: 30px;
+}
+
+#kpModal h3 {
+    color: #4CAF50;
+    margin-bottom: 20px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#kpModalContent {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#kpModalContent a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+#kpModalContent a:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    #generateKP {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    #kpModal .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 10% auto;
+    }
+}
 
 .summary-section h4 {
     margin-bottom: 15px;

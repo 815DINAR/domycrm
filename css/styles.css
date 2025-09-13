@@ -32,7 +32,7 @@ body {
     padding: 20px;
     width: 380px;
     position: fixed;
-    left: 20px;
+    left: 0px;
     top: 0px;
     bottom: 20px;
     display: flex;
